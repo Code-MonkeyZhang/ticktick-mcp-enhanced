@@ -193,9 +193,6 @@ def test_create_task_with_all_fields(client: TickTickClient, results: TestResult
             start_date=start_date,
             due_date=due_date,
             priority=5,
-            is_all_day=False,
-            time_zone="Asia/Shanghai",
-            reminders=["TRIGGER:P0DT1H0M0S"],  # 提前1小时提醒
             items=[
                 {"title": "子任务1", "status": 0, "sortOrder": 0},
                 {"title": "子任务2", "status": 0, "sortOrder": 1}
@@ -212,7 +209,6 @@ def test_create_task_with_all_fields(client: TickTickClient, results: TestResult
             (task.get('title') == "完整字段任务", "标题正确"),
             (task.get('dueDate'), "有截止日期"),
             (task.get('priority') == 5, "优先级正确"),
-            (task.get('timeZone') == "Asia/Shanghai", "时区正确"),
             (task.get('items') and len(task.get('items', [])) == 2, "子任务正确")
         ]
         
@@ -309,8 +305,7 @@ def test_update_task_add_due_date(client: TickTickClient, results: TestResults):
         updated_task = client.update_task(
             task_id=task_id,
             project_id=project_id,
-            due_date=due_date,
-            time_zone="Asia/Shanghai"
+            due_date=due_date
         )
         
         if 'error' in updated_task:

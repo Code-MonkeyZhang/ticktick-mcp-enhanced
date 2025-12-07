@@ -8,7 +8,7 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that a
 
 This enhanced version builds upon the original [ticktick-mcp](https://github.com/jacepark12/ticktick-mcp) with significant improvements:
 
-- 🚀 **Complete API Coverage** - Full support for TickTick's latest Open API with all available task parameters (reminders, repeat rules, subtasks, etc.)
+- 🚀 **Complete API Coverage** - Full support for TickTick's latest Open API with task parameters (repeat rules, subtasks, etc.)
 - 📥 **Access** **Inbox** - ticktick-mcp can now access to tasks in inbox with special project ID `"inbox"`
 - 🌍 **Timezone Fix** - Correctly handles task due dates across different timezones
 - 📦 **Batch Operations** - All task and project operations (create, update, delete, complete) support both single and batch processing

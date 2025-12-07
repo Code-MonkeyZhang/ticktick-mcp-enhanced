@@ -229,13 +229,13 @@ class TickTickClient:
     
     def create_task(self, title: str, project_id: str, content: str = None, 
                    desc: str = None, start_date: str = None, due_date: str = None, 
-                   priority: Union[int, str] = 0, is_all_day: bool = False, time_zone: str = None,
-                   reminders: List[str] = None, repeat_flag: str = None, 
-                   sort_order: int = None, items: List[Dict] = None) -> Dict:
+                   priority: Union[int, str] = 0, repeat_flag: str = None, 
+                   items: List[Dict] = None, time_zone: str = None) -> Dict:
         """Creates a new task.
         
         Args:
             priority: Priority level - can be int (0, 1, 3, 5) or str ("none", "low", "medium", "high")
+            time_zone: IANA timezone name (e.g., "Asia/Shanghai", "America/New_York")
         """
         # Import here to avoid circular imports
         from .utils.validators import normalize_priority
@@ -253,20 +253,14 @@ class TickTickClient:
             data["startDate"] = start_date
         if due_date:
             data["dueDate"] = due_date
+        if time_zone:
+            data["timeZone"] = time_zone
         if priority is not None:
             # Convert string priority to int if needed
             priority_value = normalize_priority(priority) if priority else 0
             data["priority"] = priority_value
-        if is_all_day is not None:
-            data["isAllDay"] = is_all_day
-        if time_zone:
-            data["timeZone"] = time_zone
-        if reminders:
-            data["reminders"] = reminders
         if repeat_flag:
             data["repeatFlag"] = repeat_flag
-        if sort_order is not None:
-            data["sortOrder"] = sort_order
         if items:
             data["items"] = items
             
@@ -274,14 +268,13 @@ class TickTickClient:
     
     def update_task(self, task_id: str, project_id: str, title: str = None, 
                    content: str = None, desc: str = None, priority: Union[int, str] = None, 
-                   start_date: str = None, due_date: str = None, is_all_day: bool = None,
-                   time_zone: str = None, reminders: List[str] = None, 
-                   repeat_flag: str = None, sort_order: int = None, 
-                   items: List[Dict] = None) -> Dict:
+                   start_date: str = None, due_date: str = None, repeat_flag: str = None, 
+                   items: List[Dict] = None, time_zone: str = None) -> Dict:
         """Updates an existing task.
         
         Args:
             priority: Priority level - can be int (0, 1, 3, 5) or str ("none", "low", "medium", "high")
+            time_zone: IANA timezone name (e.g., "Asia/Shanghai", "America/New_York")
         """
         # Import here to avoid circular imports
         from .utils.validators import normalize_priority
@@ -306,16 +299,10 @@ class TickTickClient:
             data["startDate"] = start_date
         if due_date:
             data["dueDate"] = due_date
-        if is_all_day is not None:
-            data["isAllDay"] = is_all_day
         if time_zone:
             data["timeZone"] = time_zone
-        if reminders is not None:
-            data["reminders"] = reminders
         if repeat_flag:
             data["repeatFlag"] = repeat_flag
-        if sort_order is not None:
-            data["sortOrder"] = sort_order
         if items is not None:
             data["items"] = items
             

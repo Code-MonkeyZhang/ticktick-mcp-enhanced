@@ -99,6 +99,38 @@ def normalize_iso_date(date_str: str) -> str:
     return normalized
 
 
+def to_ticktick_date_format(date_str: str) -> str:
+    """
+    Convert ISO date string to TickTick API format.
+    
+    TickTick API requires timezone offset WITHOUT colon: +0800, not +08:00
+    This is the reverse of normalize_iso_date().
+    
+    Handles:
+    - "Z" suffix → "+0000"
+    - "+08:00" (with colon) → "+0800" (without colon)
+    - Already correct formats (+0800) remain unchanged
+    
+    Args:
+        date_str: ISO date string in various formats
+        
+    Returns:
+        Date string in TickTick API format (timezone offset without colon)
+    """
+    if not date_str:
+        return date_str
+    
+    # Replace "Z" with "+0000"
+    result = date_str.replace("Z", "+0000")
+    
+    # Remove colon from timezone offset: +08:00 -> +0800, -05:30 -> -0530
+    # Match pattern: ends with +HH:MM or -HH:MM
+    pattern = r'([+-])(\d{2}):(\d{2})$'
+    result = re.sub(pattern, r'\1\2\3', result)
+    
+    return result
+
+
 def get_user_timezone_today() -> date:
     """Get today's date in the user's timezone."""
     if DEFAULT_TIMEZONE and DEFAULT_TIMEZONE != "Local":

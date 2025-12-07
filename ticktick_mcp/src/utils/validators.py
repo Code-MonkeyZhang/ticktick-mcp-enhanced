@@ -7,7 +7,7 @@ by various criteria, and performing search operations.
 
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional, Callable, Union
+from typing import Dict, List, Any, Optional, Callable, Union, Tuple
 from zoneinfo import ZoneInfo
 
 from .timezone import normalize_iso_date, get_user_timezone_today, DEFAULT_TIMEZONE
@@ -218,36 +218,23 @@ def validate_task_data(task_data: Dict[str, Any], task_index: int) -> Optional[s
     if priority_error:
         return priority_error
     
-    # Validate dates if provided
+    # Validate dates if provided (must include timezone offset; no is_all_day flag)
     for date_field in ['start_date', 'due_date']:
         date_str = task_data.get(date_field)
         if date_str:
             try:
-                # Try to parse the date to validate it
                 normalized_date = normalize_iso_date(date_str)
-                datetime.fromisoformat(normalized_date)
+                dt = datetime.fromisoformat(normalized_date)
+                # Require explicit tzinfo
+                if dt.tzinfo is None:
+                    return f"Task {task_index + 1}: {date_field} must include timezone offset (e.g., +08:00 or +0000)"
             except ValueError:
-                return f"Task {task_index + 1}: Invalid {date_field} format '{date_str}'. Use ISO format: YYYY-MM-DDTHH:mm:ss or with timezone"
-    
-    # Validate is_all_day if provided
-    is_all_day = task_data.get('is_all_day')
-    if is_all_day is not None and not isinstance(is_all_day, bool):
-        return f"Task {task_index + 1}: 'is_all_day' must be a boolean (true/false)"
-    
-    # Validate reminders if provided
-    reminders = task_data.get('reminders')
-    if reminders is not None and not isinstance(reminders, list):
-        return f"Task {task_index + 1}: 'reminders' must be a list"
+                return f"Task {task_index + 1}: Invalid {date_field} format '{date_str}'. Use ISO with timezone, e.g., YYYY-MM-DDTHH:mm:ss+0000"
     
     # Validate items (subtasks) if provided
     items = task_data.get('items')
     if items is not None and not isinstance(items, list):
         return f"Task {task_index + 1}: 'items' must be a list"
-    
-    # Validate sort_order if provided
-    sort_order = task_data.get('sort_order')
-    if sort_order is not None and not isinstance(sort_order, int):
-        return f"Task {task_index + 1}: 'sort_order' must be an integer"
     
     return None
 
@@ -318,5 +305,134 @@ def get_project_tasks_by_filter(projects: List[Dict], filter_func: Callable, fil
     except Exception as e:
         logger.warning(f"Could not fetch inbox tasks: {e}")
         result += f"Inbox: Could not fetch (error: {str(e)})\n"
+    
+    return result
+
+
+# =============================================================================
+# Batch Operation Helpers
+# =============================================================================
+
+def normalize_batch_input(
+    items: Union[Dict, List[Dict]], 
+    item_name: str = "Task"
+) -> Tuple[Optional[List[Dict]], bool, Optional[str]]:
+    """
+    Normalize single dict or list input to a standard format.
+    
+    Args:
+        items: Single dictionary or list of dictionaries
+        item_name: Name of the item type for error messages (e.g., "Task", "Subtask")
+    
+    Returns:
+        Tuple of (item_list, is_single, error_message):
+        - If valid: (list, bool, None)
+        - If invalid: (None, False, error_string)
+    """
+    if isinstance(items, dict):
+        return [items], True, None
+    elif isinstance(items, list):
+        if not items:
+            return None, False, f"No {item_name.lower()}s provided. Please provide at least one {item_name.lower()}."
+        return items, False, None
+    else:
+        return None, False, f"Invalid input. {item_name}s must be a dictionary or list of dictionaries."
+
+
+def validate_required_fields(
+    data: Dict, 
+    required_fields: List[str], 
+    index: int, 
+    item_name: str = "Task"
+) -> List[str]:
+    """
+    Validate that required fields exist in data.
+    
+    Args:
+        data: Dictionary to validate
+        required_fields: List of field names that must exist
+        index: Item index for error messages (0-based)
+        item_name: Name of the item type for error messages
+    
+    Returns:
+        List of error messages (empty if all valid)
+    """
+    errors = []
+    if not isinstance(data, dict):
+        return [f"{item_name} {index + 1}: Must be a dictionary"]
+    
+    for field in required_fields:
+        if field not in data:
+            errors.append(f"{item_name} {index + 1}: Missing required field '{field}'")
+    return errors
+
+
+def get_effective_timezone(provided_tz: Optional[str] = None) -> Optional[str]:
+    """
+    Get timezone to use, falling back to default if not provided.
+    
+    Args:
+        provided_tz: Explicitly provided timezone (takes priority)
+    
+    Returns:
+        Timezone string or None if no valid timezone available
+    """
+    if provided_tz:
+        return provided_tz
+    if DEFAULT_TIMEZONE and DEFAULT_TIMEZONE != "Local":
+        return DEFAULT_TIMEZONE
+    return None
+
+
+def format_batch_result(
+    success_list: List[Tuple],
+    failed_list: List[str],
+    operation: str,
+    item_name: str = "task",
+    is_single: bool = False,
+    single_success_formatter: Optional[Callable] = None,
+    batch_item_formatter: Optional[Callable] = None
+) -> str:
+    """
+    Format batch operation results into a readable string.
+    
+    Args:
+        success_list: List of successful items (tuples with item data)
+        failed_list: List of error message strings
+        operation: Past tense operation name (e.g., "created", "updated", "deleted")
+        item_name: Singular item name (e.g., "task", "subtask")
+        is_single: Whether this was a single-item operation
+        single_success_formatter: Function to format single success result
+        batch_item_formatter: Function to format each item in batch success list
+    
+    Returns:
+        Formatted result string
+    """
+    if is_single:
+        if success_list:
+            if single_success_formatter:
+                return single_success_formatter(success_list[0])
+            return f"{item_name.capitalize()} {operation} successfully."
+        else:
+            return f"Failed to {operation.replace('d', '', 1) if operation.endswith('ed') else operation} {item_name}:\n{failed_list[0]}"
+    
+    # Batch result
+    result = f"Batch {item_name} {operation.replace('ed', 'ion') if operation.endswith('ed') else operation} completed.\n\n"
+    result += f"Successfully {operation}: {len(success_list)} {item_name}s\n"
+    result += f"Failed: {len(failed_list)} {item_name}s\n\n"
+    
+    if success_list:
+        result += f"✅ Successfully {operation.capitalize()} {item_name.capitalize()}s:\n"
+        for item in success_list:
+            if batch_item_formatter:
+                result += batch_item_formatter(item) + "\n"
+            else:
+                result += f"- {item}\n"
+        result += "\n"
+    
+    if failed_list:
+        result += f"❌ Failed {item_name.capitalize()}s:\n"
+        for error in failed_list:
+            result += f"{error}\n"
     
     return result

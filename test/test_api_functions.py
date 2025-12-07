@@ -186,8 +186,7 @@ def test_create_task_with_due_date(client: TickTickClient, results: TestResults)
             project_id=project_id,
             content="这个任务有截止日期",
             due_date=due_date,
-            priority=5,
-            is_all_day=False
+            priority=5
         )
         
         if 'error' in task:
@@ -205,21 +204,21 @@ def test_create_task_with_due_date(client: TickTickClient, results: TestResults)
         results.record_fail("创建带截止日期的任务", str(e))
 
 
-def test_create_task_with_timezone(client: TickTickClient, results: TestResults):
-    """测试创建带时区的任务"""
+def test_create_task_with_timezone_offset(client: TickTickClient, results: TestResults):
+    """测试创建带时区偏移的任务（通过 due_date 自带偏移）"""
     try:
         project_id = results.get_data('test_project_id')
         if not project_id:
             results.record_skip("创建带时区的任务", "没有可用的项目ID")
             return
         
+        # 使用带偏移的截止时间（示例：UTC+00）
         due_date = (datetime.now() + timedelta(days=2)).strftime("%Y-%m-%dT10:00:00+0000")
         
         task = client.create_task(
             title="带时区的任务",
             project_id=project_id,
             due_date=due_date,
-            time_zone="America/Los_Angeles",
             priority=3
         )
         
@@ -227,46 +226,14 @@ def test_create_task_with_timezone(client: TickTickClient, results: TestResults)
             results.record_fail("创建带时区的任务", task['error'])
             return
         
-        if task.get('id') and task.get('timeZone'):
+        if task.get('id') and task.get('dueDate'):
             results.record_pass("创建带时区的任务")
             print(f"   任务ID: {task['id']}")
-            print(f"   时区: {task.get('timeZone')}")
+            print(f"   截止时间: {task.get('dueDate')}")
         else:
-            results.record_fail("创建带时区的任务", "时区未设置")
+            results.record_fail("创建带时区的任务", "截止时间未设置")
     except Exception as e:
         results.record_fail("创建带时区的任务", str(e))
-
-
-def test_create_task_with_reminders(client: TickTickClient, results: TestResults):
-    """测试创建带提醒的任务"""
-    try:
-        project_id = results.get_data('test_project_id')
-        if not project_id:
-            results.record_skip("创建带提醒的任务", "没有可用的项目ID")
-            return
-        
-        due_date = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%dT14:00:00+0000")
-        
-        task = client.create_task(
-            title="带提醒的任务",
-            project_id=project_id,
-            due_date=due_date,
-            reminders=["TRIGGER:P0DT1H0M0S", "TRIGGER:PT0S"],  # 提前1小时和准时提醒
-            priority=5
-        )
-        
-        if 'error' in task:
-            results.record_fail("创建带提醒的任务", task['error'])
-            return
-        
-        if task.get('id') and task.get('reminders'):
-            results.record_pass("创建带提醒的任务")
-            print(f"   任务ID: {task['id']}")
-            print(f"   提醒设置: {len(task.get('reminders', []))} 个提醒")
-        else:
-            results.record_fail("创建带提醒的任务", "提醒未设置")
-    except Exception as e:
-        results.record_fail("创建带提醒的任务", str(e))
 
 
 def test_create_recurring_task(client: TickTickClient, results: TestResults):
@@ -357,13 +324,9 @@ def test_create_all_day_task(client: TickTickClient, results: TestResults):
             results.record_skip("创建全天任务", "没有可用的项目ID")
             return
         
-        due_date = (datetime.now() + timedelta(days=5)).strftime("%Y-%m-%dT00:00:00+0000")
-        
         task = client.create_task(
             title="全天任务",
             project_id=project_id,
-            due_date=due_date,
-            is_all_day=True,
             priority=1
         )
         
@@ -371,12 +334,12 @@ def test_create_all_day_task(client: TickTickClient, results: TestResults):
             results.record_fail("创建全天任务", task['error'])
             return
         
-        if task.get('id') and task.get('isAllDay'):
+        if task.get('id') and not task.get('dueDate'):
             results.record_pass("创建全天任务")
             print(f"   任务ID: {task['id']}")
-            print(f"   全天任务: {task.get('isAllDay')}")
+            print("   全天任务: true (no dueDate provided)")
         else:
-            results.record_fail("创建全天任务", "全天标记未设置")
+            results.record_fail("创建全天任务", "未按无 due_date 方式创建全天任务")
     except Exception as e:
         results.record_fail("创建全天任务", str(e))
 
@@ -451,9 +414,7 @@ def test_update_task_add_due_date(client: TickTickClient, results: TestResults):
         updated_task = client.update_task(
             task_id=task_id,
             project_id=project_id,
-            due_date=due_date,
-            time_zone="Asia/Shanghai",
-            is_all_day=False
+            due_date=due_date
         )
         
         if 'error' in updated_task:
@@ -599,7 +560,6 @@ def main():
     print_section("3. 高级任务功能测试")
     test_create_task_with_due_date(client, results)
     test_create_task_with_timezone(client, results)
-    test_create_task_with_reminders(client, results)
     test_create_recurring_task(client, results)
     test_create_task_with_subtasks(client, results)
     test_create_all_day_task(client, results)
