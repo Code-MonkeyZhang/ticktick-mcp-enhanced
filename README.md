@@ -4,17 +4,6 @@
 
 A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that allows you manage your daily routine TickTick task with LLMs!
 
-### ✨ Key Enhancements
-
-This enhanced version builds upon the original [ticktick-mcp](https://github.com/jacepark12/ticktick-mcp) with significant improvements:
-
-- 🚀 **Complete API Coverage** - Full support for TickTick's latest Open API with task parameters (repeat rules, subtasks, etc.)
-- 📥 **Access** **Inbox** - ticktick-mcp can now access to tasks in inbox with special project ID `"inbox"`
-- 🌍 **Timezone Fix** - Correctly handles task due dates across different timezones
-- 📦 **Batch Operations** - All task and project operations (create, update, delete, complete) support both single and batch processing
-- 🎯 **Simplified Tool Set**
-- 🏗️ **Modular Architecture**
-
 ### Features
 
 - 📋 View & Search all your TickTick projects and tasks
@@ -38,7 +27,7 @@ Register your application at the [TickTick Developer Center](https://developer.t
 
 - Click "New App"
 - Set the redirect URI to `http://localhost:8000/callback`
-- Note your Client ID and Client Secret
+- Keep your Client ID and Client Secret
 
 ### Installation
 
@@ -59,10 +48,7 @@ Register your application at the [TickTick Developer Center](https://developer.t
    uv venv
 
    # Activate the virtual environment
-   # On macOS/Linux:
    source .venv/bin/activate
-   # On Windows:
-   .venv\Scripts\activate
 
    # Install the package
    uv pip install -e .
@@ -71,7 +57,7 @@ Register your application at the [TickTick Developer Center](https://developer.t
 3. **Authenticate with TickTick**:
 
    ```bash
-   # Run the authentication flow
+   # Run authentication
    uv run -m ticktick_mcp.cli auth
    ```
 
