@@ -13,8 +13,11 @@ from .tools.query_tools import register_query_tools
 from .utils.logging_utils import log_interaction
 
 logger = setup_logging("server")
-mcp = FastMCP("ticktick")
-
+mcp = FastMCP(
+    "ticktick",
+    description="This MCP server helps user organize life and manage to-do lists efficiently. "
+                "It supports managing tasks, projects."
+)
 
 def register_auth_tools(mcp_server: FastMCP):
     """Register authentication related tools."""
