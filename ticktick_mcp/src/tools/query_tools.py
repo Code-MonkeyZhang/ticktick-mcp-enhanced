@@ -17,17 +17,16 @@ from ..utils.validators import (
     is_task_due_in_days,
     task_matches_search,
     normalize_priority,
-    PRIORITY_NAME_MAP
+    PRIORITY_NAME_MAP,
 )
 from ..utils.logging_utils import log_interaction
 
-# Set up logging
 logger = logging.getLogger(__name__)
 
 
 def register_query_tools(mcp: FastMCP):
     """Register all query and filtering MCP tools."""
-    
+
     @mcp.tool()
     @log_interaction
     async def query_tasks(
@@ -40,12 +39,12 @@ def register_query_tools(mcp: FastMCP):
     ) -> str:
         """
         Unified task query tool with flexible multi-dimensional filtering.
-        
+
         All parameters are optional. When no filters are provided, returns all tasks.
         Multiple filters can be combined - tasks must match ALL specified criteria (AND logic).
-        
+
         Args:
-            task_id: Get a specific task by ID. When combined with project_id, uses direct API 
+            task_id: Get a specific task by ID. When combined with project_id, uses direct API
                     call (most efficient). When used alone, searches all tasks for matching ID.
                     Can be combined with other filters to verify task properties.
             project_id: Limit search to specific project (use "inbox" for inbox tasks).
@@ -60,7 +59,7 @@ def register_query_tools(mcp: FastMCP):
                         e.g., 0 for today, 1 for tomorrow, 3 for 3 days from now
             priority: Filter by priority level: "none", "low", "medium","high"(case-insensitive):
             search_term: Search keyword in title, content, or subtask titles (case-insensitive)
-        
+
         Examples:
             query_tasks()                                            → All tasks
             query_tasks(task_id="abc123", project_id="xyz789")       → Get specific task
@@ -69,46 +68,52 @@ def register_query_tools(mcp: FastMCP):
             query_tasks(priority="high")                             → High priority tasks
             query_tasks(date_filter="today", priority="high")        → High priority tasks due today
             query_tasks(search_term="meeting")                       → Tasks containing "meeting"
-        
+
         """
         try:
             """
             Validate Parameters
             """
-            # Validate and normalize priority
             priority_value = None
             if priority is not None:
                 priority_value = normalize_priority(priority)
                 if priority_value is None:
-                    valid_values = ", ".join([f'"{k}"' for k in ["none", "low", "medium", "high"]])
-                    return f"Invalid priority '{priority}'. Must be one of: {valid_values}"
-            
-            valid_date_filters = ["today", "tomorrow", "overdue", "next_7_days", "custom"]
+                    valid_values = ", ".join(
+                        [f'"{k}"' for k in ["none", "low", "medium", "high"]]
+                    )
+                    return (
+                        f"Invalid priority '{priority}'. Must be one of: {valid_values}"
+                    )
+
+            valid_date_filters = [
+                "today",
+                "tomorrow",
+                "overdue",
+                "next_7_days",
+                "custom",
+            ]
             if date_filter is not None and date_filter not in valid_date_filters:
                 return f"Invalid date_filter. Must be one of: {', '.join(valid_date_filters)}"
-            
+
             if date_filter == "custom":
                 if custom_days is None:
                     return "custom_days parameter is required when date_filter='custom'"
                 if custom_days < 0:
                     return "custom_days must be a non-negative integer"
-            
+
             if search_term is not None and not search_term.strip():
                 return "Search term cannot be empty."
-            
+
             ticktick = ensure_client()
-            
+
             if task_id and project_id:
                 task = ticktick.get_task(project_id, task_id)
-                if 'error' in task:
+                if "error" in task:
                     return f"Error fetching task: {task['error']}"
-                
-                # Apply additional filters if specified
+
                 from ..utils.formatters import format_task
-                
-                # Build filter function for the single task
+
                 def single_task_filter(t: Dict[str, Any]) -> bool:
-                    # Date filter
                     if date_filter == "today":
                         if not is_task_due_today(t):
                             return False
@@ -129,22 +134,18 @@ def register_query_tools(mcp: FastMCP):
                     elif date_filter == "custom":
                         if not is_task_due_in_days(t, custom_days):
                             return False
-                    
-                    # Priority filter
+
                     if priority_value is not None:
-                        if t.get('priority', 0) != priority_value:
+                        if t.get("priority", 0) != priority_value:
                             return False
-                    
-                    # Search filter
+
                     if search_term is not None:
                         if not task_matches_search(t, search_term):
                             return False
-                    
+
                     return True
-                
-                # Check if task passes all filters
+
                 if not single_task_filter(task):
-                    # Build description of what was filtered
                     filter_parts = []
                     if date_filter:
                         filter_parts.append(f"date_filter={date_filter}")
@@ -154,36 +155,27 @@ def register_query_tools(mcp: FastMCP):
                         filter_parts.append(f"search_term='{search_term}'")
                     filters_desc = ", ".join(filter_parts)
                     return f"Task {task_id} found but does not match the specified filters ({filters_desc})."
-                
+
                 return format_task(task)
-            
-            # Get projects for general search
-            
-            # If project_id is specified, get only that project's tasks
+
             if project_id:
                 project_data = ticktick.get_project_with_data(project_id)
-                if 'error' in project_data:
+                if "error" in project_data:
                     return f"Error fetching project data: {project_data['error']}"
-                
-                # Create a pseudo-projects list for compatibility with get_project_tasks_by_filter
-                projects = [project_data.get('project', {})]
-                # We'll need to handle this specially
-                all_tasks = project_data.get('tasks', [])
+
+                projects = [project_data.get("project", {})]
+                all_tasks = project_data.get("tasks", [])
             else:
-                # Get all projects
                 projects = ticktick.get_all_projects()
-                if 'error' in projects:
+                if "error" in projects:
                     return f"Error fetching projects: {projects['error']}"
-                all_tasks = None  # Will be fetched by get_project_tasks_by_filter
-            
-            # Build combined filter function
+                all_tasks = None
+
             def combined_filter(task: Dict[str, Any]) -> bool:
-                # Task ID filter (exact match)
                 if task_id is not None:
-                    if task.get('id') != task_id:
+                    if task.get("id") != task_id:
                         return False
-                
-                # Date filter
+
                 if date_filter == "today":
                     if not is_task_due_today(task):
                         return False
@@ -194,7 +186,6 @@ def register_query_tools(mcp: FastMCP):
                     if not is_task_overdue(task):
                         return False
                 elif date_filter == "next_7_days":
-                    # Check if task is due within the next 7 days
                     week_match = False
                     for day in range(7):
                         if is_task_due_in_days(task, day):
@@ -205,25 +196,21 @@ def register_query_tools(mcp: FastMCP):
                 elif date_filter == "custom":
                     if not is_task_due_in_days(task, custom_days):
                         return False
-                
-                # Priority filter
+
                 if priority_value is not None:
-                    if task.get('priority', 0) != priority_value:
+                    if task.get("priority", 0) != priority_value:
                         return False
-                
-                # Search filter
+
                 if search_term is not None:
                     if not task_matches_search(task, search_term):
                         return False
-                
-                # All filters passed
+
                 return True
-            
-            # Build description
+
             filter_descriptions = []
             if task_id is not None:
                 filter_descriptions.append(f"task ID '{task_id}'")
-            
+
             if date_filter == "today":
                 filter_descriptions.append("due today")
             elif date_filter == "tomorrow":
@@ -233,40 +220,49 @@ def register_query_tools(mcp: FastMCP):
             elif date_filter == "next_7_days":
                 filter_descriptions.append("due within next 7 days")
             elif date_filter == "custom":
-                day_text = "today" if custom_days == 0 else f"in {custom_days} day{'s' if custom_days != 1 else ''}"
+                day_text = (
+                    "today"
+                    if custom_days == 0
+                    else f"in {custom_days} day{'s' if custom_days != 1 else ''}"
+                )
                 filter_descriptions.append(f"due {day_text}")
-            
+
             if priority is not None:
                 filter_descriptions.append(f"priority {priority.capitalize()}")
-            
+
             if search_term is not None:
                 filter_descriptions.append(f"matching '{search_term}'")
-            
+
             if project_id:
-                project_name = projects[0].get('name', project_id) if projects else project_id
+                project_name = (
+                    projects[0].get("name", project_id) if projects else project_id
+                )
                 filter_descriptions.append(f"in project '{project_name}'")
-            
-            description = " AND ".join(filter_descriptions) if filter_descriptions else "all tasks"
-            
-            # Special handling for single project query
+
+            description = (
+                " AND ".join(filter_descriptions)
+                if filter_descriptions
+                else "all tasks"
+            )
+
             if project_id and all_tasks is not None:
-                # Filter tasks directly
                 filtered_tasks = [task for task in all_tasks if combined_filter(task)]
-                
+
                 if not filtered_tasks:
                     return f"No tasks found ({description})."
-                
-                # Format results
+
                 from ..utils.formatters import format_task
+
                 result = f"Found {len(filtered_tasks)} tasks ({description}):\n\n"
                 for i, task in enumerate(filtered_tasks, 1):
                     result += f"Task {i}:\n" + format_task(task) + "\n"
-                
+
                 return result
             else:
-                # Use standard filter function for all projects
-                return get_project_tasks_by_filter(projects, combined_filter, description, ticktick)
-            
+                return get_project_tasks_by_filter(
+                    projects, combined_filter, description, ticktick
+                )
+
         except Exception as e:
             logger.error(f"Error in query_tasks: {e}")
             return f"Error querying tasks: {str(e)}"
