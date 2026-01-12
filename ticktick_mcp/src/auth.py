@@ -1,463 +1,244 @@
 """
 TickTick OAuth authentication module.
 
-This module handles the OAuth 2.0 flow for authenticating with TickTick,
-allowing users to authorize the application and obtain access tokens
-without manually copying and pasting tokens.
+This module handles the OAuth 2.0 flow logic and token management.
+Refactored to support 'headless' MCP operation.
 """
 
 import os
-import webbrowser
 import json
-import time
 import base64
-import http.server
-import socketserver
 import urllib.parse
 import requests
-from pathlib import Path
-from typing import Dict, Optional, Tuple, Any
-from dotenv import load_dotenv
 import logging
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
+from dotenv import load_dotenv
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
-# Default scopes for TickTick API
+# Token storage path
+# Store in the project root directory (two levels up from this file: src/auth.py -> src -> ticktick_mcp -> root)
+PACKAGE_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = PACKAGE_ROOT.parent
+TOKEN_FILE = PROJECT_ROOT / ".ticktick_token.json"
+
+# Default scopes
 DEFAULT_SCOPES = ["tasks:read", "tasks:write"]
 
-# Version configurations for different TickTick variants
+# Version configurations
 VERSION_CONFIGS = {
-    "international": {
+    "global": {
         "name": "TickTick International",
-        "name_cn": "TickTick 国际版",
         "auth_url": "https://ticktick.com/oauth/authorize",
         "token_url": "https://ticktick.com/oauth/token",
         "base_url": "https://api.ticktick.com/open/v1",
-        "developer_url": "https://developer.ticktick.com",
-        "account_url": "https://ticktick.com"
     },
     "china": {
-        "name": "滴答清单中国版",
-        "name_cn": "滴答清单",
+        "name": "TickTick China (Dida365)",
         "auth_url": "https://dida365.com/oauth/authorize",
         "token_url": "https://dida365.com/oauth/token",
         "base_url": "https://api.dida365.com/open/v1",
-        "developer_url": "https://developer.dida365.com",
-        "account_url": "https://dida365.com"
     }
 }
 
-class OAuthCallbackHandler(http.server.BaseHTTPRequestHandler):
-    """Handle OAuth callback requests."""
-    
-    # Class variable to store the authorization code
-    auth_code = None
+class OAuthCallbackHandler(BaseHTTPRequestHandler):
+    """Handles the OAuth callback from the browser."""
     
     def do_GET(self):
-        """Handle GET requests to the callback URL."""
-        # Parse query parameters
-        query = urllib.parse.urlparse(self.path).query
-        params = urllib.parse.parse_qs(query)
+        # Only handle the callback path
+        # We need to extract the path part from redirect_uri to match against
+        # But for simplicity, we'll check if the request path starts with the callback path
+        # or just assume any request with ?code= is the one (if we are listening on specific port)
         
-        if 'code' in params:
-            # Store the authorization code
-            OAuthCallbackHandler.auth_code = params['code'][0]
+        parsed_path = urllib.parse.urlparse(self.path)
+        query_params = urllib.parse.parse_qs(parsed_path.query)
+        
+        if 'code' in query_params:
+            code = query_params['code'][0]
             
-            # Send success response
+            # Attempt to exchange code
+            success = self.server.auth_instance.exchange_code(code)
+            
             self.send_response(200)
-            self.send_header('Content-type', 'text/html')
+            self.send_header('Content-type', 'text/html; charset=utf-8')
             self.end_headers()
             
-            # Return a nice HTML page
-            response = """
-            <html>
-            <head>
-                <title>TickTick MCP Server - Authentication Successful</title>
-                <style>
-                    body {
-                        font-family: Arial, sans-serif;
-                        line-height: 1.6;
-                        max-width: 600px;
-                        margin: 0 auto;
-                        padding: 20px;
-                        text-align: center;
-                    }
-                    h1 {
-                        color: #4CAF50;
-                    }
-                    .box {
-                        border: 1px solid #ddd;
-                        border-radius: 5px;
-                        padding: 20px;
-                        margin-top: 20px;
-                        background-color: #f9f9f9;
-                    }
-                </style>
-            </head>
-            <body>
-                <h1>Authentication Successful!</h1>
-                <div class="box">
-                    <p>You have successfully authenticated with TickTick.</p>
-                    <p>You can now close this window and return to the terminal.</p>
-                </div>
-            </body>
-            </html>
-            """
-            self.wfile.write(response.encode())
+            if success:
+                html_content = """
+                    <html>
+                    <head>
+                        <title>Login Successful</title>
+                        <style>
+                            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f7; color: #1d1d1f; }
+                            .container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto; }
+                            h1 { color: #2ecc71; margin-bottom: 10px; }
+                            p { font-size: 18px; line-height: 1.5; color: #86868b; }
+                            .icon { font-size: 64px; margin-bottom: 20px; display: block; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <span class="icon">✅</span>
+                            <h1>Authentication Successful!</h1>
+                            <p>TickTick has been connected successfully.</p>
+                            <p>You can now close this window and return to your AI agent.</p>
+                        </div>
+                        <script>window.close();</script>
+                    </body>
+                    </html>
+                """
+                self.wfile.write(html_content.encode('utf-8'))
+                # We could stop the server here, but it's running in a daemon thread so it's fine
+            else:
+                 self.wfile.write(b"""
+                    <html><body><h1>Authentication Failed</h1><p>Could not exchange code for token. Please check logs.</p></body></html>
+                """)
         else:
-            # Send error response
-            self.send_response(400)
-            self.send_header('Content-type', 'text/html')
+            # Handle favicon or other requests
+            self.send_response(404)
             self.end_headers()
-            
-            response = """
-            <html>
-            <head>
-                <title>TickTick MCP Server - Authentication Failed</title>
-                <style>
-                    body {
-                        font-family: Arial, sans-serif;
-                        line-height: 1.6;
-                        max-width: 600px;
-                        margin: 0 auto;
-                        padding: 20px;
-                        text-align: center;
-                    }
-                    h1 {
-                        color: #f44336;
-                    }
-                    .box {
-                        border: 1px solid #ddd;
-                        border-radius: 5px;
-                        padding: 20px;
-                        margin-top: 20px;
-                        background-color: #f9f9f9;
-                    }
-                </style>
-            </head>
-            <body>
-                <h1>Authentication Failed</h1>
-                <div class="box">
-                    <p>Failed to receive authorization code from TickTick.</p>
-                    <p>Please try again or check the error message in the terminal.</p>
-                </div>
-            </body>
-            </html>
-            """
-            self.wfile.write(response.encode())
-    
+
     def log_message(self, format, *args):
-        """Override to prevent noisy logging to stderr."""
-        pass
+        # Silence default server logging to avoid cluttering stdout
+        return
 
 class TickTickAuth:
     """TickTick OAuth authentication manager."""
     
-    def __init__(self, client_id: str = None, client_secret: str = None, 
-                 redirect_uri: str = "http://localhost:8000/callback",
-                 port: int = 8000, env_file: str = None):
-        """
-        Initialize the TickTick authentication manager.
+    def __init__(self):
+        load_dotenv()
         
-        Args:
-            client_id: The TickTick client ID
-            client_secret: The TickTick client secret
-            redirect_uri: The redirect URI for OAuth callbacks
-            port: The port to use for the callback server
-            env_file: Path to .env file with credentials
-        """
-        # Try to load from environment variables or .env file
-        if env_file:
-            load_dotenv(env_file)
-        else:
-            load_dotenv()
-        
-        self.auth_url = os.getenv("TICKTICK_AUTH_URL") or "https://ticktick.com/oauth/authorize"
-        self.token_url = os.getenv("TICKTICK_TOKEN_URL") or "https://ticktick.com/oauth/token"
-        self.client_id = client_id or os.getenv("TICKTICK_CLIENT_ID")
-        self.client_secret = client_secret or os.getenv("TICKTICK_CLIENT_SECRET")
-        self.redirect_uri = redirect_uri
-        self.port = port
-        self.auth_code = None
-        self.tokens = None
-        
-        # Check if credentials are available
-        if not self.client_id or not self.client_secret:
-            logger.warning("TickTick client ID or client secret is missing. "
-                          "Please set TICKTICK_CLIENT_ID and TICKTICK_CLIENT_SECRET "
-                          "environment variables or provide them as parameters.")
-    
-    def set_version_config(self, version_key: str) -> bool:
-        """
-        Set the version configuration for the authentication URLs.
-        
-        Args:
-            version_key: The version key ('international' or 'china')
+        # 1. Determine Version/Region
+        # Default to 'global' if not specified
+        self.account_type = os.getenv("TICKTICK_ACCOUNT_TYPE", "global").lower()
+        if self.account_type not in VERSION_CONFIGS:
+            logger.warning(f"Unknown account type '{self.account_type}', defaulting to 'global'")
+            self.account_type = "global"
             
-        Returns:
-            True if successful, False if invalid version key
-        """
-        if version_key not in VERSION_CONFIGS:
-            logger.error(f"Invalid version key: {version_key}")
-            return False
+        self.config = VERSION_CONFIGS[self.account_type]
         
-        config = VERSION_CONFIGS[version_key]
-        self.auth_url = config["auth_url"]
-        self.token_url = config["token_url"]
+        # 2. Load Credentials
+        self.client_id = os.getenv("TICKTICK_CLIENT_ID")
+        self.client_secret = os.getenv("TICKTICK_CLIENT_SECRET")
+        self.redirect_uri = os.getenv("TICKTICK_REDIRECT_URI", "http://localhost:8000/callback")
         
-        logger.info(f"Version configuration set to: {config['name']}")
-        return True
-    
-    def get_authorization_url(self, scopes: list = None, state: str = None) -> str:
-        """
-        Generate the TickTick authorization URL.
+        # 3. Load Token
+        self.access_token = None
+        self.load_token()
         
-        Args:
-            scopes: List of OAuth scopes to request
-            state: State parameter for CSRF protection
+        # 4. Local Server
+        self._server = None
+        self._server_thread = None
+
+    def is_configured(self) -> bool:
+        """Check if Client ID and Secret are provided."""
+        return bool(self.client_id and self.client_secret)
+
+    def is_authenticated(self) -> bool:
+        """Check if we have a valid access token."""
+        return bool(self.access_token)
+        
+    def start_local_server(self):
+        """Start a local HTTP server to listen for OAuth callback."""
+        if self._server:
+            # Server already running
+            return
+
+        try:
+            parsed_uri = urllib.parse.urlparse(self.redirect_uri)
+            port = parsed_uri.port or 80
             
-        Returns:
-            The authorization URL
-        """
-        if not scopes:
-            scopes = DEFAULT_SCOPES
-        
+            # Allow address reuse to avoid "Address already in use" errors during restart
+            HTTPServer.allow_reuse_address = True
+            self._server = HTTPServer(('localhost', port), OAuthCallbackHandler)
+            self._server.auth_instance = self
+            
+            self._server_thread = threading.Thread(target=self._server.serve_forever)
+            self._server_thread.daemon = True  # Daemon thread will exit when main program exits
+            self._server_thread.start()
+            
+            logger.info(f"Started local callback server on port {port}")
+        except Exception as e:
+            logger.error(f"Failed to start local callback server: {e}")
+            # Non-critical: User can still copy-paste code if server fails
+
+    def get_auth_url(self) -> str:
+        """Generate the authorization URL for the user."""
+        if not self.is_configured():
+            raise ValueError("Missing TICKTICK_CLIENT_ID or TICKTICK_CLIENT_SECRET in environment.")
+
         params = {
             "client_id": self.client_id,
             "redirect_uri": self.redirect_uri,
             "response_type": "code",
-            "scope": " ".join(scopes)
+            "scope": " ".join(DEFAULT_SCOPES),
+            "state": base64.urlsafe_b64encode(os.urandom(10)).decode('utf-8')
         }
-        
-        if state:
-            params["state"] = state
-        
-        # Build the URL with query parameters
         query_string = urllib.parse.urlencode(params)
-        return f"{self.auth_url}?{query_string}"
-    
-    def start_auth_flow(self, scopes: list = None) -> str:
-        """
-        Start the OAuth flow by opening the browser and waiting for the callback.
-        
-        Args:
-            scopes: List of OAuth scopes to request
-            
-        Returns:
-            The obtained access token or an error message
-        """
-        if not self.client_id or not self.client_secret:
-            return "TickTick client ID or client secret is missing. Please set up your credentials first."
-        
-        # Generate a random state parameter for CSRF protection
-        state = base64.urlsafe_b64encode(os.urandom(30)).decode('utf-8')
-        
-        # Get the authorization URL
-        auth_url = self.get_authorization_url(scopes, state)
-        
-        print(f"Opening browser for TickTick authorization...")
-        print(f"If the browser doesn't open automatically, please visit this URL:")
-        print(auth_url)
-        
-        # Open the browser for the user to authorize
-        webbrowser.open(auth_url)
-        
-        # Start a local server to handle the OAuth callback
-        httpd = None
-        try:
-            # Use a socket server to handle the callback
-            OAuthCallbackHandler.auth_code = None
-            httpd = socketserver.TCPServer(("", self.port), OAuthCallbackHandler)
-            
-            print(f"Waiting for authentication callback on port {self.port}...")
-            
-            # Run the server until we get the authorization code
-            # Set a timeout for the server
-            timeout = 300  # 5 minutes
-            start_time = time.time()
-            
-            while not OAuthCallbackHandler.auth_code:
-                # Handle one request with a short timeout
-                httpd.timeout = 1.0
-                httpd.handle_request()
-                
-                # Check if we've timed out
-                if time.time() - start_time > timeout:
-                    return "Authentication timed out. Please try again."
-            
-            # Store the auth code
-            self.auth_code = OAuthCallbackHandler.auth_code
-            
-            # Exchange the code for tokens
-            return self.exchange_code_for_token()
-            
-        except Exception as e:
-            logger.error(f"Error during OAuth flow: {e}")
-            return f"Error during OAuth flow: {str(e)}"
-        finally:
-            # Clean up the server
-            if httpd:
-                httpd.server_close()
-    
-    def exchange_code_for_token(self) -> str:
-        """
-        Exchange the authorization code for an access token.
-        
-        Returns:
-            Success message or error message
-        """
-        if not self.auth_code:
-            return "No authorization code available. Please start the authentication flow again."
-        
-        # Prepare the token request
-        token_data = {
+        return f"{self.config['auth_url']}?{query_string}"
+
+    def exchange_code(self, code: str) -> bool:
+        """Exchange auth code for access token."""
+        if not self.is_configured():
+            return False
+
+        data = {
             "grant_type": "authorization_code",
-            "code": self.auth_code,
+            "code": code,
             "redirect_uri": self.redirect_uri,
             "scope": " ".join(DEFAULT_SCOPES)
         }
-        
-        # Prepare Basic Auth credentials
+
+        # Basic Auth header
         auth_str = f"{self.client_id}:{self.client_secret}"
-        auth_bytes = auth_str.encode('ascii')
-        auth_b64 = base64.b64encode(auth_bytes).decode('ascii')
-        
+        auth_b64 = base64.b64encode(auth_str.encode('ascii')).decode('ascii')
         headers = {
             "Authorization": f"Basic {auth_b64}",
-            "Content-Type": "application/x-www-form-urlencoded",
-            "Accept-Encoding": None,
-            "User-Agent": 'curl/8.7.1'
+            "Content-Type": "application/x-www-form-urlencoded"
         }
-        
+
         try:
-            # Send the token request
-            response = requests.post(self.token_url, data=token_data, headers=headers)
+            response = requests.post(self.config["token_url"], data=data, headers=headers)
             response.raise_for_status()
+            token_data = response.json()
             
-            # Parse the response
-            self.tokens = response.json()
-            
-            # Save the tokens to the .env file
-            self._save_tokens_to_env()
-            
-            return "Authentication successful! Access token saved to .env file."
-            
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error exchanging code for token: {e}")
-            if hasattr(e, 'response') and e.response is not None:
-                try:
-                    error_details = e.response.json()
-                    return f"Error exchanging code for token: {error_details}"
-                except:
-                    return f"Error exchanging code for token: {e.response.text}"
-            return f"Error exchanging code for token: {str(e)}"
-    
-    def _save_tokens_to_env(self) -> None:
-        """Save the tokens to the .env file."""
-        if not self.tokens:
-            return
-        
-        # Load existing .env file content
-        env_path = Path('.env')
-        env_content = {}
-        
-        if env_path.exists():
-            with open(env_path, 'r') as f:
-                for line in f:
-                    line = line.strip()
-                    if line and not line.startswith('#') and '=' in line:
-                        key, value = line.split('=', 1)
-                        env_content[key] = value
-        
-        # Update with new tokens
-        env_content["TICKTICK_ACCESS_TOKEN"] = self.tokens.get('access_token', '')
-        if 'refresh_token' in self.tokens:
-            env_content["TICKTICK_REFRESH_TOKEN"] = self.tokens.get('refresh_token', '')
-        
-        # Make sure client credentials are saved as well
-        if self.client_id and "TICKTICK_CLIENT_ID" not in env_content:
-            env_content["TICKTICK_CLIENT_ID"] = self.client_id
-        if self.client_secret and "TICKTICK_CLIENT_SECRET" not in env_content:
-            env_content["TICKTICK_CLIENT_SECRET"] = self.client_secret
-        
-        # Write back to .env file
-        with open(env_path, 'w') as f:
-            for key, value in env_content.items():
-                f.write(f"{key}={value}\n")
-        
-        logger.info("Tokens saved to .env file")
-    
-    def save_version_config_to_env(self, version_key: str) -> bool:
-        """
-        Save the version configuration URLs to the .env file.
-        
-        Args:
-            version_key: The version key ('international' or 'china')
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        if version_key not in VERSION_CONFIGS:
-            logger.error(f"Invalid version key: {version_key}")
-            return False
-        
-        config = VERSION_CONFIGS[version_key]
-        
-        # Load existing .env file content
-        env_path = Path('.env')
-        env_content = {}
-        
-        if env_path.exists():
-            with open(env_path, 'r') as f:
-                for line in f:
-                    line = line.strip()
-                    if line and not line.startswith('#') and '=' in line:
-                        key, value = line.split('=', 1)
-                        env_content[key] = value
-        
-        # Update with version configuration
-        env_content["TICKTICK_AUTH_URL"] = config["auth_url"]
-        env_content["TICKTICK_TOKEN_URL"] = config["token_url"]
-        env_content["TICKTICK_BASE_URL"] = config["base_url"]
-        
-        # Write back to .env file
-        try:
-            with open(env_path, 'w') as f:
-                for key, value in env_content.items():
-                    f.write(f"{key}={value}\n")
-            
-            logger.info(f"Version configuration for {config['name']} saved to .env file")
+            # Save token
+            self.save_token(token_data)
             return True
         except Exception as e:
-            logger.error(f"Error saving version configuration to .env file: {e}")
+            logger.error(f"Token exchange failed: {e}")
+            if hasattr(e, 'response') and e.response:
+                logger.error(f"Response: {e.response.text}")
             return False
 
-def setup_auth_cli():
-    """Run the authentication flow as a CLI utility."""
-    import argparse
-    
-    parser = argparse.ArgumentParser(description='TickTick OAuth Authentication')
-    parser.add_argument('--client-id', help='TickTick client ID')
-    parser.add_argument('--client-secret', help='TickTick client secret')
-    parser.add_argument('--redirect-uri', default='http://localhost:8000/callback',
-                        help='OAuth redirect URI')
-    parser.add_argument('--port', type=int, default=8000,
-                        help='Port to use for OAuth callback server')
-    parser.add_argument('--env-file', help='Path to .env file with credentials')
-    
-    args = parser.parse_args()
-    
-    auth = TickTickAuth(
-        client_id=args.client_id,
-        client_secret=args.client_secret,
-        redirect_uri=args.redirect_uri,
-        port=args.port,
-        env_file=args.env_file
-    )
-    
-    result = auth.start_auth_flow()
-    print(result)
+    def save_token(self, token_data: dict):
+        """Save token to local file."""
+        try:
+            self.access_token = token_data.get("access_token")
+            with open(TOKEN_FILE, 'w') as f:
+                json.dump(token_data, f)
+            logger.info(f"Token saved to {TOKEN_FILE}")
+        except Exception as e:
+            logger.error(f"Failed to save token: {e}")
 
-if __name__ == "__main__":
-    setup_auth_cli()
+    def load_token(self):
+        """Load token from local file."""
+        if TOKEN_FILE.exists():
+            try:
+                with open(TOKEN_FILE, 'r') as f:
+                    data = json.load(f)
+                    self.access_token = data.get("access_token")
+            except Exception as e:
+                logger.warning(f"Failed to load token: {e}")
+
+    def get_headers(self) -> dict:
+        """Get headers for API requests."""
+        if not self.access_token:
+            return {}
+        return {"Authorization": f"Bearer {self.access_token}"}
+
+    def get_base_url(self) -> str:
+        return self.config["base_url"]

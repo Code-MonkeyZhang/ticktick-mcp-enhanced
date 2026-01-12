@@ -1,11 +1,8 @@
 import os
-import json
-import base64
 import requests
 import logging
-from pathlib import Path
-from dotenv import load_dotenv
-from typing import Dict, List, Any, Optional, Tuple, Union
+from typing import Dict, List, Any, Optional, Union
+from .auth import TickTickAuth
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -13,338 +10,128 @@ logger = logging.getLogger(__name__)
 class TickTickClient:
     """
     Client for the TickTick API using OAuth2 authentication.
+    Wraps TickTickAuth to handle token lifecycle.
     """
     
     def __init__(self):
-        load_dotenv()
-        self.client_id = os.getenv("TICKTICK_CLIENT_ID")
-        self.client_secret = os.getenv("TICKTICK_CLIENT_SECRET")
-        self.access_token = os.getenv("TICKTICK_ACCESS_TOKEN")
-        self.refresh_token = os.getenv("TICKTICK_REFRESH_TOKEN")
+        self.auth = TickTickAuth()
         
-        if not self.access_token:
-            raise ValueError("TICKTICK_ACCESS_TOKEN environment variable is not set. "
-                            "Please run 'uv run -m ticktick_mcp.authenticate' to set up your credentials.")
-            
-        self.base_url = os.getenv("TICKTICK_BASE_URL") or "https://api.ticktick.com/open/v1"
-        self.token_url = os.getenv("TICKTICK_TOKEN_URL") or "https://ticktick.com/oauth/token"
-        self.headers = {
-            "Authorization": f"Bearer {self.access_token}",
+        # If we have a token, we can initialize headers.
+        # If not, request methods will likely fail or should check auth first.
+    
+    @property
+    def headers(self):
+        """Get current headers from auth module."""
+        headers = self.auth.get_headers()
+        headers.update({
             "Content-Type": "application/json",
             "Accept-Encoding": None,
             "User-Agent": 'curl/8.7.1'
-        }
+        })
+        return headers
     
-    def _refresh_access_token(self) -> bool:
-        """
-        Refresh the access token using the refresh token.
-        
-        Returns:
-            True if successful, False otherwise
-        """
-        if not self.refresh_token:
-            logger.warning("No refresh token available. Cannot refresh access token.")
-            return False
-            
-        if not self.client_id or not self.client_secret:
-            logger.warning("Client ID or Client Secret missing. Cannot refresh access token.")
-            return False
-            
-        # Prepare the token request
-        token_data = {
-            "grant_type": "refresh_token",
-            "refresh_token": self.refresh_token
-        }
-        
-        # Prepare Basic Auth credentials
-        auth_str = f"{self.client_id}:{self.client_secret}"
-        auth_bytes = auth_str.encode('ascii')
-        auth_b64 = base64.b64encode(auth_bytes).decode('ascii')
-        
-        headers = {
-            "Authorization": f"Basic {auth_b64}",
-            "Content-Type": "application/x-www-form-urlencoded"
-        }
-        
-        try:
-            # Send the token request
-            response = requests.post(self.token_url, data=token_data, headers=headers)
-            response.raise_for_status()
-            
-            # Parse the response
-            tokens = response.json()
-            
-            # Update the tokens
-            self.access_token = tokens.get('access_token')
-            if 'refresh_token' in tokens:
-                self.refresh_token = tokens.get('refresh_token')
-                
-            # Update the headers
-            self.headers["Authorization"] = f"Bearer {self.access_token}"
-            
-            # Save the tokens to the .env file
-            self._save_tokens_to_env(tokens)
-            
-            logger.info("Access token refreshed successfully.")
-            return True
-            
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error refreshing access token: {e}")
-            return False
-    
-    def _save_tokens_to_env(self, tokens: Dict[str, str]) -> None:
-        """
-        Save the tokens to the .env file.
-        
-        Args:
-            tokens: A dictionary containing the access_token and optionally refresh_token
-        """
-        # Load existing .env file content
-        env_path = Path('.env')
-        env_content = {}
-        
-        if env_path.exists():
-            with open(env_path, 'r') as f:
-                for line in f:
-                    line = line.strip()
-                    if line and not line.startswith('#') and '=' in line:
-                        key, value = line.split('=', 1)
-                        env_content[key] = value
-        
-        # Update with new tokens
-        env_content["TICKTICK_ACCESS_TOKEN"] = tokens.get('access_token', '')
-        if 'refresh_token' in tokens:
-            env_content["TICKTICK_REFRESH_TOKEN"] = tokens.get('refresh_token', '')
-        
-        # Make sure client credentials are saved as well
-        if self.client_id and "TICKTICK_CLIENT_ID" not in env_content:
-            env_content["TICKTICK_CLIENT_ID"] = self.client_id
-        if self.client_secret and "TICKTICK_CLIENT_SECRET" not in env_content:
-            env_content["TICKTICK_CLIENT_SECRET"] = self.client_secret
-        
-        # Write back to .env file
-        with open(env_path, 'w') as f:
-            for key, value in env_content.items():
-                f.write(f"{key}={value}\n")
-        
-        logger.debug("Tokens saved to .env file")
-    
+    @property
+    def base_url(self):
+        return self.auth.get_base_url()
+
     def _make_request(self, method: str, endpoint: str, data=None) -> Dict:
         """
         Makes a request to the TickTick API.
-        
-        Args:
-            method: HTTP method (GET, POST, PUT, DELETE)
-            endpoint: API endpoint (without base URL)
-            data: Request data (for POST, PUT)
-        
-        Returns:
-            API response as a dictionary
         """
+        if not self.auth.is_authenticated():
+            return {"error": "Not authenticated. Please use 'start_authentication' tool."}
+
         url = f"{self.base_url}{endpoint}"
         
         try:
             # Make the request
-            if method == "GET":
-                response = requests.get(url, headers=self.headers)
-            elif method == "POST":
-                response = requests.post(url, headers=self.headers, json=data)
-            elif method == "DELETE":
-                response = requests.delete(url, headers=self.headers)
-            else:
-                raise ValueError(f"Unsupported HTTP method: {method}")
+            response = requests.request(method, url, headers=self.headers, json=data)
             
-            # Check if the request was unauthorized (401)
+            # Check for 401 Unauthorized (Token Expired)
             if response.status_code == 401:
-                logger.info("Access token expired. Attempting to refresh...")
-                
-                # Try to refresh the access token
-                if self._refresh_access_token():
-                    # Retry the request with the new token
-                    if method == "GET":
-                        response = requests.get(url, headers=self.headers)
-                    elif method == "POST":
-                        response = requests.post(url, headers=self.headers, json=data)
-                    elif method == "DELETE":
-                        response = requests.delete(url, headers=self.headers)
+                logger.info("Access token expired. Attempting to refresh is not implemented in this version (needs refresh token flow).")
+                # In a full implementation, we would call self.auth.refresh_token() here
+                return {"error": "Access token expired or invalid. Please re-authenticate using 'start_authentication'."}
             
-            # Raise an exception for 4xx/5xx status codes
             response.raise_for_status()
             
-            # Return empty dict for 204 No Content
-            if response.status_code == 204 or response.text == "":
+            if response.status_code == 204 or not response.text:
                 return {}
             
             return response.json()
         except requests.exceptions.RequestException as e:
             logger.error(f"API request failed: {e}")
             return {"error": str(e)}
-    
-    # Project methods
+
+    # --- Project Methods ---
     def get_all_projects(self) -> List[Dict]:
-        """Gets all projects for the user."""
         return self._make_request("GET", "/project")
     
     def get_project(self, project_id: str) -> Dict:
-        """Gets a specific project by ID."""
         return self._make_request("GET", f"/project/{project_id}")
     
     def get_project_with_data(self, project_id: str) -> Dict:
-        """Gets project with tasks and columns."""
         return self._make_request("GET", f"/project/{project_id}/data")
     
     def create_project(self, name: str, color: str = "#F18181", view_mode: str = "list", kind: str = "TASK") -> Dict:
-        """Creates a new project."""
-        data = {
-            "name": name,
-            "color": color,
-            "viewMode": view_mode,
-            "kind": kind
-        }
+        data = {"name": name, "color": color, "viewMode": view_mode, "kind": kind}
         return self._make_request("POST", "/project", data)
     
-    def update_project(self, project_id: str, name: str = None, color: str = None, 
-                       view_mode: str = None, kind: str = None) -> Dict:
-        """Updates an existing project."""
+    def update_project(self, project_id: str, name: str = None, color: str = None, view_mode: str = None, kind: str = None) -> Dict:
         data = {}
-        if name:
-            data["name"] = name
-        if color:
-            data["color"] = color
-        if view_mode:
-            data["viewMode"] = view_mode
-        if kind:
-            data["kind"] = kind
-            
+        if name: data["name"] = name
+        if color: data["color"] = color
+        if view_mode: data["viewMode"] = view_mode
+        if kind: data["kind"] = kind
         return self._make_request("POST", f"/project/{project_id}", data)
     
     def delete_project(self, project_id: str) -> Dict:
-        """Deletes a project."""
         return self._make_request("DELETE", f"/project/{project_id}")
     
-    # Task methods
+    # --- Task Methods ---
     def get_task(self, project_id: str, task_id: str) -> Dict:
-        """Gets a specific task by project ID and task ID."""
         return self._make_request("GET", f"/project/{project_id}/task/{task_id}")
     
-    def create_task(self, title: str, project_id: str, content: str = None, 
-                   desc: str = None, start_date: str = None, due_date: str = None, 
-                   priority: Union[int, str] = 0, repeat_flag: str = None, 
-                   items: List[Dict] = None, time_zone: str = None) -> Dict:
-        """Creates a new task.
-        
-        Args:
-            priority: Priority level - can be int (0, 1, 3, 5) or str ("none", "low", "medium", "high")
-            time_zone: IANA timezone name (e.g., "Asia/Shanghai", "America/New_York")
-        """
-        # Import here to avoid circular imports
+    def create_task(self, title: str, project_id: str, content: str = None, desc: str = None, start_date: str = None, due_date: str = None, priority: Union[int, str] = 0, repeat_flag: str = None, items: List[Dict] = None, time_zone: str = None) -> Dict:
         from .utils.validators import normalize_priority
-        
-        data = {
-            "title": title,
-            "projectId": project_id
-        }
-        
-        if content:
-            data["content"] = content
-        if desc:
-            data["desc"] = desc
-        if start_date:
-            data["startDate"] = start_date
-        if due_date:
-            data["dueDate"] = due_date
-        if time_zone:
-            data["timeZone"] = time_zone
+        data = {"title": title, "projectId": project_id}
+        if content: data["content"] = content
+        if desc: data["desc"] = desc
+        if start_date: data["startDate"] = start_date
+        if due_date: data["dueDate"] = due_date
+        if time_zone: data["timeZone"] = time_zone
         if priority is not None:
-            # Convert string priority to int if needed
-            priority_value = normalize_priority(priority) if priority else 0
-            data["priority"] = priority_value
-        if repeat_flag:
-            data["repeatFlag"] = repeat_flag
-        if items:
-            data["items"] = items
-            
+            data["priority"] = normalize_priority(priority) if priority else 0
+        if repeat_flag: data["repeatFlag"] = repeat_flag
+        if items: data["items"] = items
         return self._make_request("POST", "/task", data)
     
-    def update_task(self, task_id: str, project_id: str, title: str = None, 
-                   content: str = None, desc: str = None, priority: Union[int, str] = None, 
-                   start_date: str = None, due_date: str = None, repeat_flag: str = None, 
-                   items: List[Dict] = None, time_zone: str = None) -> Dict:
-        """Updates an existing task.
-        
-        Args:
-            priority: Priority level - can be int (0, 1, 3, 5) or str ("none", "low", "medium", "high")
-            time_zone: IANA timezone name (e.g., "Asia/Shanghai", "America/New_York")
-        """
-        # Import here to avoid circular imports
+    def update_task(self, task_id: str, project_id: str, title: str = None, content: str = None, desc: str = None, priority: Union[int, str] = None, start_date: str = None, due_date: str = None, repeat_flag: str = None, items: List[Dict] = None, time_zone: str = None) -> Dict:
         from .utils.validators import normalize_priority
-        
-        data = {
-            "id": task_id,
-            "projectId": project_id
-        }
-        
-        if title:
-            data["title"] = title
-        if content:
-            data["content"] = content
-        if desc:
-            data["desc"] = desc
+        data = {"id": task_id, "projectId": project_id}
+        if title: data["title"] = title
+        if content: data["content"] = content
+        if desc: data["desc"] = desc
         if priority is not None:
-            # Convert string priority to int if needed
-            priority_value = normalize_priority(priority)
-            if priority_value is not None:
-                data["priority"] = priority_value
-        if start_date:
-            data["startDate"] = start_date
-        if due_date:
-            data["dueDate"] = due_date
-        if time_zone:
-            data["timeZone"] = time_zone
-        if repeat_flag:
-            data["repeatFlag"] = repeat_flag
-        if items is not None:
-            data["items"] = items
-            
+            p = normalize_priority(priority)
+            if p is not None: data["priority"] = p
+        if start_date: data["startDate"] = start_date
+        if due_date: data["dueDate"] = due_date
+        if time_zone: data["timeZone"] = time_zone
+        if repeat_flag: data["repeatFlag"] = repeat_flag
+        if items is not None: data["items"] = items
         return self._make_request("POST", f"/task/{task_id}", data)
     
     def complete_task(self, project_id: str, task_id: str) -> Dict:
-        """Marks a task as complete."""
         return self._make_request("POST", f"/project/{project_id}/task/{task_id}/complete")
     
     def delete_task(self, project_id: str, task_id: str) -> Dict:
-        """Deletes a task."""
         return self._make_request("DELETE", f"/project/{project_id}/task/{task_id}")
     
-    def create_subtask(self, subtask_title: str, parent_task_id: str, project_id: str, 
-                      content: str = None, priority: Union[int, str] = 0) -> Dict:
-        """
-        Creates a subtask for a parent task within the same project.
-        
-        Args:
-            subtask_title: Title of the subtask
-            parent_task_id: ID of the parent task
-            project_id: ID of the project (must be same for both parent and subtask)
-            content: Optional content/description for the subtask
-            priority: Priority level - can be int (0, 1, 3, 5) or str ("none", "low", "medium", "high")
-        
-        Returns:
-            API response as a dictionary containing the created subtask
-        """
-        # Import here to avoid circular imports
+    def create_subtask(self, subtask_title: str, parent_task_id: str, project_id: str, content: str = None, priority: Union[int, str] = 0) -> Dict:
         from .utils.validators import normalize_priority
-        
-        data = {
-            "title": subtask_title,
-            "projectId": project_id,
-            "parentId": parent_task_id
-        }
-        
-        if content:
-            data["content"] = content
+        data = {"title": subtask_title, "projectId": project_id, "parentId": parent_task_id}
+        if content: data["content"] = content
         if priority is not None:
-            # Convert string priority to int if needed
-            priority_value = normalize_priority(priority) if priority else 0
-            data["priority"] = priority_value
-            
+            data["priority"] = normalize_priority(priority) if priority else 0
         return self._make_request("POST", "/task", data)

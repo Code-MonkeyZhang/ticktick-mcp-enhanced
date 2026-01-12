@@ -19,32 +19,25 @@ ticktick = None
 
 
 def initialize_client():
-    """Initialize the TickTick client with proper authentication."""
+    """Initialize the TickTick client."""
     global ticktick
     try:
-        # Check if .env file exists with access token
+        # Load environment variables (support both .env and system env)
         load_dotenv()
         
-        # Check if we have valid credentials
-        if os.getenv("TICKTICK_ACCESS_TOKEN") is None:
-            logger.error("No access token found in .env file. Please run 'uv run -m ticktick_mcp.cli auth' to authenticate.")
-            return False
+        # We no longer fail if token is missing. 
+        # The client will be initialized in a "disconnected" state if needed,
+        # or the auth tools will be used to establish connection.
         
-        # Initialize the client
+        # Initialize the client (it handles its own auth check internally now)
         ticktick = TickTickClient()
-        logger.info("TickTick client initialized successfully")
+        logger.info("TickTick client wrapper initialized")
         
-        # Test API connectivity
-        projects = ticktick.get_all_projects()
-        if 'error' in projects:
-            logger.error(f"Failed to access TickTick API: {projects['error']}")
-            logger.error("Your access token may have expired. Please run 'uv run -m ticktick_mcp.cli auth' to refresh it.")
-            return False
-            
-        logger.info(f"Successfully connected to TickTick API with {len(projects)} projects")
         return True
     except Exception as e:
-        logger.error(f"Failed to initialize TickTick client: {e}")
+        logger.error(f"Failed to initialize TickTick client wrapper: {e}")
+        # Even if initialization fails, we don't want to crash the MCP server
+        # We just won't have a working client
         return False
 
 
@@ -54,8 +47,7 @@ def get_client():
 
 
 def ensure_client():
-    """Ensure the client is initialized, initialize if not."""
+    """Ensure the client is initialized."""
     if not ticktick:
-        if not initialize_client():
-            raise RuntimeError("Failed to initialize TickTick client. Please check your API credentials.")
+        initialize_client()
     return ticktick
