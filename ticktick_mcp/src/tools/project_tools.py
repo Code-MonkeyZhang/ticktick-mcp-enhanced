@@ -9,7 +9,7 @@ import logging
 from typing import Union, List
 from mcp.server.fastmcp import FastMCP
 
-from ..config import ensure_client
+from ..client_manager import ensure_client
 from ..utils.formatters import format_project, format_task
 from ..utils.logging_utils import log_interaction
 

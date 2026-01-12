@@ -9,7 +9,7 @@ import logging
 from typing import Dict, Any, Optional
 from mcp.server.fastmcp import FastMCP
 
-from ..config import ensure_client
+from ..client_manager import ensure_client
 from ..utils.validators import (
     get_project_tasks_by_filter,
     is_task_due_today,

@@ -15,7 +15,7 @@ from typing import List, Dict, Any, Union
 from datetime import datetime
 from mcp.server.fastmcp import FastMCP
 
-from ..config import ensure_client
+from ..client_manager import ensure_client
 from ..utils.formatters import format_task
 from ..utils.timezone import normalize_iso_date, to_ticktick_date_format
 from ..utils.logging_utils import log_interaction

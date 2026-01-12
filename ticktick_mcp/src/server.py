@@ -6,7 +6,7 @@ import logging
 from mcp.server.fastmcp import FastMCP
 
 from .log import setup_logging
-from .config import initialize_client, get_client
+from .client_manager import initialize_client, get_client
 from .tools.project_tools import register_project_tools
 from .tools.task_tools import register_task_tools
 from .tools.query_tools import register_query_tools
