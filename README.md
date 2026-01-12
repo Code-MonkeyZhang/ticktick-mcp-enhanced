@@ -30,7 +30,8 @@ You need to have a TickTick account to use this MCP.
 Register your application at the [TickTick Developer Center](https://developer.ticktick.com/manage). If you are using Chinese version, at [Dida Developer Center](https://developer.dida365.com/manage).
 
 - Click "New App"
-- Set the redirect URI to `http://localhost:8000/callback`
+- Set the redirect URI. The default used by this MCP is `http://localhost:8000/callback`.
+  - You can customize this by setting the `TICKTICK_REDIRECT_URI` environment variable if needed.
 - Keep your Client ID and Client Secret
 
 ### Installation
@@ -99,7 +100,12 @@ Register your application at the [TickTick Developer Center](https://developer.t
            "-m",
            "ticktick_mcp.cli",
            "run"
-         ]
+         ],
+         "env": {
+           "TICKTICK_CLIENT_ID": "your_client_id",
+           "TICKTICK_CLIENT_SECRET": "your_client_secret",
+           "TICKTICK_REDIRECT_URI": "http://localhost:8000/callback"
+         }
        }
      }
    }
@@ -445,3 +451,50 @@ ticktick-mcp/
 本项目受以下项目启发并包含其派生代码：
 
 - [ticktick-mcp](https://github.com/jacepark12/ticktick-mcp)，作者 Jaesung Park，基于 MIT License
+
+---
+
+## OpenCode MCP 配置
+
+在 OpenCode 中使用此 MCP 服务器时，可能会遇到以下问题：
+
+### 问题：ModuleNotFoundError: No module named 'ticktick_mcp'
+
+**原因**：
+虚拟环境中未安装该包，Python 无法找到 `ticktick_mcp` 模块。
+
+**解决方案**：
+使用 `uv pip install -e .` 将包安装到虚拟环境：
+
+```bash
+cd ticktick-mcp-enhanced
+uv pip install -e .
+```
+
+这会在虚拟环境的 `site-packages` 中创建一个 `.egg-link` 文件，指向项目目录，使 Python 能够找到模块。
+
+### OpenCode 配置示例
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "ticktick": {
+      "type": "local",
+      "command": [
+        "/path/to/.venv/bin/python",
+        "-m",
+        "ticktick_mcp.cli",
+        "run"
+      ],
+      "environment": {
+        "SSL_CERT_FILE": "/path/to/.venv/lib/python3.11/site-packages/certifi/cacert.pem",
+        "REQUESTS_CA_BUNDLE": "/path/to/.venv/lib/python3.11/site-packages/certifi/cacert.pem"
+      },
+      "enabled": true
+    }
+  }
+}
+```
+
+**注意**：在使用 `uv pip install -e .` 之前，必须先确保包已正确安装到虚拟环境中。

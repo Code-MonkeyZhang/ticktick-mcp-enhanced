@@ -16,6 +16,7 @@ env/
 
 # Environment variables (contains sensitive API keys)
 .env
+.ticktick_token.json
 
 # IDE specific files
 .idea/

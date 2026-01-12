@@ -1,0 +1,32 @@
+[project]
+name = "ticktick-mcp"
+version = "0.2.0"
+description = "Model Context Protocol (MCP) server for TickTick task management"
+authors = [
+    { name = "Jaesung Park", email = "parkjs814@gmail.com" },
+    { name = "Gemini Agent", email = "agent@gemini.com" }
+]
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "mcp[cli]>=1.2.0,<2.0.0",
+    "python-dotenv>=1.0.0,<2.0.0",
+    "requests>=2.30.0,<3.0.0",
+]
+
+[project.scripts]
+ticktick-mcp = "ticktick_mcp.cli:main"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ticktick_mcp*"]
