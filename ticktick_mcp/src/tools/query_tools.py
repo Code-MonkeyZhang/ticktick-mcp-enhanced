@@ -19,6 +19,7 @@ from ..utils.validators import (
     normalize_priority,
     PRIORITY_NAME_MAP
 )
+from ..utils.logging_utils import log_interaction
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -28,6 +29,7 @@ def register_query_tools(mcp: FastMCP):
     """Register all query and filtering MCP tools."""
     
     @mcp.tool()
+    @log_interaction
     async def query_tasks(
         task_id: Optional[str] = None,
         project_id: Optional[str] = None,
@@ -67,9 +69,6 @@ def register_query_tools(mcp: FastMCP):
             query_tasks(priority="high")                             → High priority tasks
             query_tasks(date_filter="today", priority="high")        → High priority tasks due today
             query_tasks(search_term="meeting")                       → Tasks containing "meeting"
-            query_tasks(date_filter="next_7_days", priority="medium")→ Medium priority, next 7 days
-            query_tasks(project_id="inbox")                          → All inbox tasks
-            query_tasks(search_term="bug", priority="high")          → High priority bugs
         
         """
         try:

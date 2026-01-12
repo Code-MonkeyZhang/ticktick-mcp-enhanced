@@ -8,13 +8,15 @@ all the TickTick tools from the various modules.
 import logging
 from mcp.server.fastmcp import FastMCP
 
+from .log import setup_logging
 from .config import initialize_client, get_client
 from .tools.project_tools import register_project_tools
 from .tools.task_tools import register_task_tools
 from .tools.query_tools import register_query_tools
+from .utils.logging_utils import log_interaction
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Initialize logging
+logger = setup_logging("server")
 
 # Create FastMCP server
 mcp = FastMCP("ticktick")
@@ -23,7 +25,8 @@ def register_auth_tools(mcp_server: FastMCP):
     """Register authentication related tools."""
     
     @mcp_server.tool()
-    def ticktick_status() -> str:
+    @log_interaction
+    async def ticktick_status() -> str:
         """
         Check the current connection status with TickTick.
         Returns whether the server is authenticated and ready to use.
@@ -38,7 +41,8 @@ def register_auth_tools(mcp_server: FastMCP):
             return "❌ Not Authenticated. Please use the 'start_authentication' tool to log in."
 
     @mcp_server.tool()
-    def start_authentication() -> str:
+    @log_interaction
+    async def start_authentication() -> str:
         """
         Start the authentication process.
         Returns a URL that the user must visit to authorize the application.
@@ -71,7 +75,8 @@ If the automatic login fails (e.g., page connection refused), please copy the 'c
             return f"Error generating auth URL: {str(e)}"
 
     @mcp_server.tool()
-    def finish_authentication(code: str) -> str:
+    @log_interaction
+    async def finish_authentication(code: str) -> str:
         """
         Complete the authentication process using the code obtained from the browser.
         

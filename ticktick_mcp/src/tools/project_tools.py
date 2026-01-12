@@ -11,6 +11,7 @@ from mcp.server.fastmcp import FastMCP
 
 from ..config import ensure_client
 from ..utils.formatters import format_project, format_task
+from ..utils.logging_utils import log_interaction
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -20,6 +21,7 @@ def register_project_tools(mcp: FastMCP):
     """Register all project-related MCP tools."""
     
     @mcp.tool()
+    @log_interaction
     async def get_all_projects() -> str:
         """
         Get all projects from TickTick.
@@ -46,6 +48,7 @@ def register_project_tools(mcp: FastMCP):
             return f"Error retrieving projects: {str(e)}"
 
     @mcp.tool()
+    @log_interaction
     async def get_project_info(project_id: str) -> str:
         """
         Get comprehensive information about a project, including its details and all tasks.
@@ -100,6 +103,7 @@ def register_project_tools(mcp: FastMCP):
             return f"Error retrieving project information: {str(e)}"
 
     @mcp.tool()
+    @log_interaction
     async def create_project(
         name: str,
         color: str = "#F18181",
@@ -134,6 +138,7 @@ def register_project_tools(mcp: FastMCP):
             return f"Error creating project: {str(e)}"
 
     @mcp.tool()
+    @log_interaction
     async def delete_projects(projects: Union[str, List[str]]) -> str:
         """
         Delete one or more projects.

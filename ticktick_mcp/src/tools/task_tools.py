@@ -18,6 +18,7 @@ from mcp.server.fastmcp import FastMCP
 from ..config import ensure_client
 from ..utils.formatters import format_task
 from ..utils.timezone import normalize_iso_date, to_ticktick_date_format
+from ..utils.logging_utils import log_interaction
 from ..utils.validators import (
     validate_task_data, 
     normalize_priority,
@@ -36,6 +37,7 @@ def register_task_tools(mcp: FastMCP):
     """Register all task-related MCP tools."""
     
     @mcp.tool()
+    @log_interaction
     async def create_tasks(tasks: Union[Dict[str, Any], List[Dict[str, Any]]]) -> str:
         """
         Create one or more tasks in TickTick.
@@ -142,6 +144,7 @@ def register_task_tools(mcp: FastMCP):
             return f"Error during task creation: {str(e)}"
 
     @mcp.tool()
+    @log_interaction
     async def update_tasks(tasks: Union[Dict[str, Any], List[Dict[str, Any]]]) -> str:
         """
         Update one or more existing tasks in TickTick.
@@ -260,6 +263,7 @@ def register_task_tools(mcp: FastMCP):
             return f"Error during task update: {str(e)}"
 
     @mcp.tool()
+    @log_interaction
     async def complete_tasks(tasks: Union[Dict[str, str], List[Dict[str, str]]]) -> str:
         """
         Mark one or more tasks as complete.
@@ -325,6 +329,7 @@ def register_task_tools(mcp: FastMCP):
             return f"Error during task completion: {str(e)}"
 
     @mcp.tool()
+    @log_interaction
     async def delete_tasks(tasks: Union[Dict[str, str], List[Dict[str, str]]]) -> str:
         """
         Delete one or more tasks.
@@ -390,6 +395,7 @@ def register_task_tools(mcp: FastMCP):
             return f"Error during task deletion: {str(e)}"
 
     @mcp.tool()
+    @log_interaction
     async def create_subtasks(subtasks: Union[Dict[str, Any], List[Dict[str, Any]]]) -> str:
         """
         Create one or more subtasks for parent tasks. For single subtask, you can pass

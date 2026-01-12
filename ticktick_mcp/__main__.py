@@ -20,13 +20,6 @@ def main():
     
     args = parser.parse_args()
     
-    # Configure logging
-    log_level = logging.DEBUG if args.debug else logging.INFO
-    logging.basicConfig(
-        level=log_level,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-    
     # Start the server
     try:
         server_main()
