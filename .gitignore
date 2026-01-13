@@ -23,6 +23,7 @@ env/
 .vscode/
 *.swp
 *.swo
+.ruff_cache/
 
 # OS specific files
 .DS_Store
@@ -36,4 +37,5 @@ logs/
 mcp.txt
 doc/
 docs/
+test/
 .cursorrules

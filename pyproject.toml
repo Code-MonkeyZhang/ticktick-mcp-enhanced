@@ -6,6 +6,7 @@ authors = [
     { name = "Jaesung Park", email = "parkjs814@gmail.com" },
     { name = "Gemini Agent", email = "agent@gemini.com" }
 ]
+license = { text = "MIT" }
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [

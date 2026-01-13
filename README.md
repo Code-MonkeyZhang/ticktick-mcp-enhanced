@@ -1,186 +1,107 @@
-# TickTick MCP Enhanced
+<p align="center">
+  <img src="logo.png" width="128" alt="TickTick MCP Logo">
+</p>
 
-[English](#english) | [中文](#中文)
+# 滴答清单 MCP 服务器
 
----
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![English](https://img.shields.io/badge/Language-English-blue)](./README_en.md)
 
-## English
-
-A modernized [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that allows you to manage your TickTick tasks with LLMs using a "Configuration is Installation" philosophy.
-
-### Features
-
-- 🚀 **Configuration is Installation**: No manual setup scripts. Just configure your MCP client and go.
-- 🔐 **Interactive Authentication**: Secure, in-chat OAuth flow with automatic local callback handling.
-- 📋 **Comprehensive Management**: View, create, update, and delete projects and tasks.
-- 🔍 **Smart Query**: Unified search with natural language filtering (dates, priorities, keywords).
-- 🔌 **Universal Compatibility**: Works seamlessly with Claude Desktop, Gemini CLI, and other MCP clients.
-
-### Prerequisites
-
-- Python 3.10 or higher
-- [uv](https://github.com/astral-sh/uv) (Recommended) or Python pip
-- TickTick account with API access
-- TickTick API credentials (Client ID, Client Secret)
-
-### Authentication Setup
-
-You need to register an application at the [TickTick Developer Center](https://developer.ticktick.com/manage) (or [Dida Developer Center](https://developer.dida365.com/manage) for CN users).
-
-1. Click "New App".
-2. Set **Redirect URI**.
-   - **Recommended**: `http://localhost:8000/callback` (Default used by this MCP).
-   - *Custom*: If you need a different port, set `TICKTICK_REDIRECT_URI` in your config to match.
-3. Keep your **Client ID** and **Client Secret**.
-
-### Quick Start
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/Code-MonkeyZhang/ticktick-mcp-enhanced
-   cd ticktick-mcp-enhanced
-   ```
-
-2. **Configure your MCP Client** (e.g., Claude Desktop `claude_desktop_config.json`):
-
-   ```json
-   {
-     "mcpServers": {
-       "ticktick": {
-         "command": "/path/to/uv",  // Absolute path to 'uv'
-         "args": [
-           "run",
-           "--directory",
-           "/absolute/path/to/ticktick-mcp-enhanced", // Absolute path to cloned repo
-           "ticktick-mcp",
-           "run"
-         ],
-         "env": {
-           "TICKTICK_ACCOUNT_TYPE": "china", // 'china' (dida365) or 'global' (ticktick.com)
-           "TICKTICK_CLIENT_ID": "your_client_id_here",
-           "TICKTICK_CLIENT_SECRET": "your_client_secret_here",
-           "TICKTICK_REDIRECT_URI": "http://localhost:8000/callback" // Optional
-         }
-       }
-     }
-   }
-   ```
-
-3. **Use it!**
-   - Open your AI Agent.
-   - Ask: "What are my tasks for today?"
-   - If not logged in, the Agent will provide an authorization link.
-   - **Click the link** -> Log in -> **Done!** (The page will auto-close).
-
-   *Token is stored in `.ticktick_token.json` in the project directory.*
-
-### Available Tools
-
-| Category | Tool | Description |
-| :--- | :--- | :--- |
-| **Auth** | `ticktick_status` | Check connection status. |
-| | `start_authentication` | Generate login link (starts local listener). |
-| | `finish_authentication` | Manual code exchange (fallback). |
-| **Projects** | `get_all_projects` | List all projects. |
-| | `get_project_info` | Get tasks in a project. |
-| | `create_project` | Create a new project. |
-| | `delete_projects` | Delete projects. |
-| **Tasks** | `create_tasks` | Create tasks (smart parsing). |
-| | `update_tasks` | Update task details. |
-| | `complete_tasks` | Mark tasks as complete. |
-| | `delete_tasks` | Delete tasks. |
-| | `create_subtasks` | Add subtasks. |
-| **Query** | `query_tasks` | Powerful filter (date, priority, search). |
+一个 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) 服务器，允许大语言模型管理你的滴答清单/TickTick 待办事项。
 
 ---
 
-## 中文
+## 🛠️ 准备工作
 
-一个现代化的 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) 服务器，让大模型通过“配置即安装”的方式管理你的滴答清单。
-
-### 功能特性
-
-- 🚀 **配置即安装**：无需运行安装脚本。配置好 MCP 客户端即可直接使用。
-- 🔐 **交互式认证**：在聊天中直接完成 OAuth 认证，支持本地自动回调，无需复制粘贴。
-- 📋 **全面管理**：支持查看、创建、更新、删除项目和任务。
-- 🔍 **智能查询**：支持按日期、优先级、关键词进行自然语言过滤。
-- 🔌 **广泛兼容**：完美支持 Claude Desktop, Gemini CLI 等 MCP 客户端。
-
-### 准备工作
-
-- Python 3.10+
-- [uv](https://github.com/astral-sh/uv) (推荐)
-- 滴答清单账号
+- **Python 3.10+**
+- 已安装 [**uv**](https://github.com/astral-sh/uv) (推荐)
+- 滴答清单或 TickTick 账号
 - API 凭证 (Client ID, Client Secret)
 
-### 认证设置
+## 🔑 认证设置
 
-前往 [滴答清单开发者中心](https://developer.dida365.com/manage) (国内) 或 [TickTick Developer Center](https://developer.ticktick.com/manage) (国际) 注册应用。
+在 [滴答清单开发者中心](https://developer.dida365.com/manage)（国内用户）或 [TickTick Developer Center](https://developer.ticktick.com/manage) 注册一个应用。
 
-1. 点击 "New App"。
-2. 设置 **Redirect URI**。
-   - **推荐**: `http://localhost:8000/callback` (本工具默认值)。
-   - *自定义*: 如需修改端口，请在配置中设置 `TICKTICK_REDIRECT_URI` 环境变量。
-3. 保存 **Client ID** 和 **Client Secret**。
+1. 点击 **"New App"**。
+2. 保存你的 **Client ID** 和 **Client Secret**。
+3. 设置 **Redirect URI**：
+   - **推荐使用**: `http://localhost:8000/callback`。
+   - _自定义_: 如果你修改了此项，请相应地设置 `TICKTICK_REDIRECT_URI` 环境变量。
 
-### 快速开始
+## 🚀 快速开始
 
-1. **克隆代码库**:
-   ```bash
-   git clone https://github.com/Code-MonkeyZhang/ticktick-mcp-enhanced
-   cd ticktick-mcp-enhanced
-   ```
+### 1. 克隆代码库
 
-2. **配置 MCP 客户端** (如 Claude Desktop `claude_desktop_config.json`):
-
-   ```json
-   {
-     "mcpServers": {
-       "ticktick": {
-         "command": "/path/to/uv",  // uv 的绝对路径
-         "args": [
-           "run",
-           "--directory",
-           "/absolute/path/to/ticktick-mcp-enhanced", // 项目文件夹绝对路径
-           "ticktick-mcp",
-           "run"
-         ],
-         "env": {
-           "TICKTICK_ACCOUNT_TYPE": "china", // china (国内版) 或 global (国际版)
-           "TICKTICK_CLIENT_ID": "你的Client ID",
-           "TICKTICK_CLIENT_SECRET": "你的Client Secret",
-           "TICKTICK_REDIRECT_URI": "http://localhost:8000/callback" // 可选
-         }
-       }
-     }
-   }
-   ```
-
-3. **开始使用**:
-   - 打开你的 AI 助手。
-   - 问它：“我今天有什么任务？”
-   - 如果未登录，助手会给你一个链接。
-   - **点击链接** -> 登录授权 -> **完成！** (页面会自动关闭)。
-   - 助手会自动获取 Token 并继续回答你的问题。
-
-   *Token 会安全存储在项目目录下的 `.ticktick_token.json` 文件中。*
-
-### 项目结构
-
+```bash
+git clone https://github.com/Code-MonkeyZhang/ticktick-mcp-enhanced
+cd ticktick-mcp-enhanced
 ```
+
+### 2. 配置 MCP 客户端
+
+以 **Claude Desktop** (`claude_desktop_config.json`) 为例：
+
+```json
+{
+  "mcpServers": {
+    "ticktick": {
+      "command": "/path/to/uv",
+      "args": [
+        "run",
+        "--directory",
+        "/项目/的/绝对路径/ticktick-mcp-enhanced",
+        "ticktick-mcp",
+        "run"
+      ],
+      "env": {
+        "TICKTICK_ACCOUNT_TYPE": "china", // "china" 或 "global"
+        "TICKTICK_CLIENT_ID": "你的_client_id",
+        "TICKTICK_CLIENT_SECRET": "你的_client_secret",
+        "TICKTICK_REDIRECT_URI": "http://localhost:8000/callback"
+      }
+    }
+  }
+}
+```
+
+### 3. 授权并使用
+
+1. 重启你的 MCP 客户端。
+2. 问 AI：“查看我今天的任务”。
+3. **首次授权**：AI 将提供一个授权链接。点击链接 -> 登录 -> 将弹出一个授权页面，显示授权已完成。
+4. 你可以返回 LLM 客户端并使用此 MCP 访问滴答清单。
+
+> 你的授权 Token 将存储在项目文件夹下的 `.ticktick_token.json` 中。
+
+## 🧰 可用工具
+
+此 MCP 向你的 LLM 客户端公开以下工具。
+
+| 类别 | 工具名称 | 功能描述 |
+| :--- | :--- | :--- |
+| **认证** | `ticktick_status` | 检查当前的连接和授权状态。 |
+| | `start_authentication` | 生成登录链接并启动本地回调监听。 |
+| **清单** | `get_all_projects` | 获取所有清单列表（包含 ID）。 |
+| | `get_project_info` | 查看特定清单及其中的任务。 |
+| | `create_project` | 创建一个新的清单。 |
+| | `delete_projects` | 批量删除清单。 |
+| **任务** | `create_tasks` | 创建任务（支持智能时间识别）。 |
+| | `update_tasks` | 修改任务标题、内容、日期或优先级。 |
+| | `complete_tasks` | 将任务标记为完成。 |
+| | `delete_tasks` | 批量删除任务。 |
+| | `create_subtasks` | 为任务添加子任务。 |
+| **查询** | `query_tasks` | 高级查询（支持日期范围、优先级、搜索词）。 |
+
+## 📂 项目结构
+
+```text
 ticktick-mcp-enhanced/
 ├── ticktick_mcp/
 │   ├── src/
-│   │   ├── server.py          # MCP Server 入口
-│   │   ├── auth.py            # OAuth 认证与本地回调服务器
-│   │   ├── tools/             # 工具实现
-│   │   └── ...
-│   └── cli.py                 # CLI 包装器
-├── pyproject.toml             # 项目依赖配置
-├── README.md
-└── .ticktick_token.json       # 本地凭证 (被 git 忽略)
+│   │   ├── server.py          # MCP 服务入口
+│   │   ├── auth.py            # OAuth 逻辑与回调服务器
+│   │   ├── tools/             # 各类工具实现
+│   │   └── utils/             # 格式化与校验工具
+│   └── __main__.py            # CLI 启动项
+├── pyproject.toml             # 项目配置与依赖
+└── README_en.md               # 英文文档
 ```
-
-### 许可证
-
-MIT License
