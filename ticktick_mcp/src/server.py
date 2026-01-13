@@ -14,9 +14,7 @@ from .utils.logging_utils import log_interaction
 
 logger = setup_logging("server")
 mcp = FastMCP(
-    "ticktick",
-    description="This MCP server helps user organize life and manage to-do lists efficiently. "
-                "It supports managing tasks, projects."
+    "ticktick"
 )
 
 def register_auth_tools(mcp_server: FastMCP):
