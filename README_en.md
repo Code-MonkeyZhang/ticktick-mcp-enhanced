@@ -4,9 +4,11 @@
 
 # TickTick MCP Server
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![中文](https://img.shields.io/badge/Language-中文-blue)](./README.md)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that allows LLMs to manage your TickTick/Dida365 to-do lists.
+
+🔗 **API Documentation**: [TickTick/Dida365 OpenAPI](https://developer.dida365.com/docs#/openapi)
 
 ---
 
@@ -56,7 +58,8 @@ Example for **Claude Desktop** (`claude_desktop_config.json`):
         "TICKTICK_ACCOUNT_TYPE": "china", // "china" or "global"
         "TICKTICK_CLIENT_ID": "your_client_id_here",
         "TICKTICK_CLIENT_SECRET": "your_client_secret_here",
-        "TICKTICK_REDIRECT_URI": "http://localhost:8000/callback"
+        "TICKTICK_REDIRECT_URI": "http://localhost:8000/callback",
+        "MCP_LOG_ENABLE": "true" // Optional: Enable file logging (logs/session_*.log), no stderr output
       }
     }
   }

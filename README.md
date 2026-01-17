@@ -4,9 +4,11 @@
 
 # 滴答清单 MCP 服务器
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![English](https://img.shields.io/badge/Language-English-blue)](./README_en.md)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 一个 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) 服务器，允许大语言模型管理你的滴答清单/TickTick 待办事项。
+
+🔗 **API 文档**: [滴答清单官方 OpenAPI](https://developer.dida365.com/docs#/openapi)
 
 ---
 
@@ -53,10 +55,11 @@ cd ticktick-mcp-enhanced
         "run"
       ],
       "env": {
-        "TICKTICK_ACCOUNT_TYPE": "china", // "china" 或 "global"
+        "TICKTICK_ACCOUNT_TYPE": "china", // "china" 或 "global" 选择你滴答清单账户的区域
         "TICKTICK_CLIENT_ID": "你的_client_id",
         "TICKTICK_CLIENT_SECRET": "你的_client_secret",
-        "TICKTICK_REDIRECT_URI": "http://localhost:8000/callback"
+        "TICKTICK_REDIRECT_URI": "http://localhost:8000/callback", // 这里填写上一步中你在开发者平台注册的URL
+        "MCP_LOG_ENABLE": "false" // 可选：开启MCP日志记录功能
       }
     }
   }
@@ -76,20 +79,20 @@ cd ticktick-mcp-enhanced
 
 此 MCP 向你的 LLM 客户端公开以下工具。
 
-| 类别 | 工具名称 | 功能描述 |
-| :--- | :--- | :--- |
-| **认证** | `ticktick_status` | 检查当前的连接和授权状态。 |
-| | `start_authentication` | 生成登录链接并启动本地回调监听。 |
-| **清单** | `get_all_projects` | 获取所有清单列表（包含 ID）。 |
-| | `get_project_info` | 查看特定清单及其中的任务。 |
-| | `create_project` | 创建一个新的清单。 |
-| | `delete_projects` | 批量删除清单。 |
-| **任务** | `create_tasks` | 创建任务（支持智能时间识别）。 |
-| | `update_tasks` | 修改任务标题、内容、日期或优先级。 |
-| | `complete_tasks` | 将任务标记为完成。 |
-| | `delete_tasks` | 批量删除任务。 |
-| | `create_subtasks` | 为任务添加子任务。 |
-| **查询** | `query_tasks` | 高级查询（支持日期范围、优先级、搜索词）。 |
+| 类别     | 工具名称               | 功能描述                                       |
+| :------- | :--------------------- | :--------------------------------------------- |
+| **认证** | `ticktick_status`      | 检查当前的连接和授权状态。                     |
+|          | `start_authentication` | 生成登录链接并启动本地回调监听。               |
+| **清单** | `get_all_projects`     | 获取所有清单列表。                             |
+|          | `get_project_info`     | 查看特定清单及其中的任务。                     |
+|          | `create_project`       | 创建一个新的项目。                             |
+|          | `delete_projects`      | 删除项目。                                     |
+| **任务** | `create_tasks`         | 创建任务（支持智能时间识别）。                 |
+|          | `update_tasks`         | 修改任务标题、内容、日期或优先级。             |
+|          | `complete_tasks`       | 将任务标记为完成。                             |
+|          | `delete_tasks`         | 批量删除任务。                                 |
+|          | `create_subtasks`      | 为任务添加子任务。                             |
+| **查询** | `query_tasks`          | 高级清单查询（支持日期范围、优先级、搜索词）。 |
 
 ## 📂 项目结构
 

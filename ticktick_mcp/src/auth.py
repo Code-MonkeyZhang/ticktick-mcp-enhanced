@@ -10,12 +10,9 @@ import json
 import base64
 import urllib.parse
 import requests
-import logging
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-
-logger = logging.getLogger(__name__)
 
 PACKAGE_ROOT = Path(__file__).parent.parent
 PROJECT_ROOT = PACKAGE_ROOT.parent
@@ -98,9 +95,6 @@ class TickTickAuth:
     def __init__(self):
         self.account_type = os.getenv("TICKTICK_ACCOUNT_TYPE", "global").lower()
         if self.account_type not in VERSION_CONFIGS:
-            logger.warning(
-                f"Unknown account type '{self.account_type}', defaulting to 'global'"
-            )
             self.account_type = "global"
 
         self.config = VERSION_CONFIGS[self.account_type]
@@ -142,9 +136,8 @@ class TickTickAuth:
             self._server_thread.daemon = True
             self._server_thread.start()
 
-            logger.info(f"Started local callback server on port {port}")
         except Exception as e:
-            logger.error(f"Failed to start local callback server: {e}")
+            pass
 
     def get_auth_url(self) -> str:
         """Generate the authorization URL for the user."""
@@ -192,9 +185,6 @@ class TickTickAuth:
             self.save_token(token_data)
             return True
         except Exception as e:
-            logger.error(f"Token exchange failed: {e}")
-            if hasattr(e, "response") and e.response:
-                logger.error(f"Response: {e.response.text}")
             return False
 
     def save_token(self, token_data: dict):
@@ -203,9 +193,8 @@ class TickTickAuth:
             self.access_token = token_data.get("access_token")
             with open(TOKEN_FILE, "w") as f:
                 json.dump(token_data, f)
-            logger.info(f"Token saved to {TOKEN_FILE}")
         except Exception as e:
-            logger.error(f"Failed to save token: {e}")
+            pass
 
     def load_token(self):
         """Load token from local file."""
@@ -215,7 +204,7 @@ class TickTickAuth:
                     data = json.load(f)
                     self.access_token = data.get("access_token")
             except Exception as e:
-                logger.warning(f"Failed to load token: {e}")
+                pass
 
     def get_headers(self) -> dict:
         """Get headers for API requests."""

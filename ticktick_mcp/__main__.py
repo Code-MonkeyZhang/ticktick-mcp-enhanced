@@ -4,6 +4,12 @@ Main entry point for TickTick MCP server.
 """
 
 import sys
+import os
+
+# 彻底静音：将 stderr 重定向到 devnull
+# 这样可以消除 FastMCP 的 Banner 以及所有第三方库的日志干扰
+sys.stderr = open(os.devnull, 'w')
+
 import logging
 import argparse
 from .src.server import main as server_main

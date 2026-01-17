@@ -144,7 +144,7 @@ def register_task_tools(mcp: FastMCP):
             )
 
         except Exception as e:
-            logger.error(f"Error in create_tasks: {e}")
+            # logger.error(f"Error in create_tasks: {e}")
             return f"Error during task creation: {str(e)}"
 
     @mcp.tool()
@@ -270,7 +270,7 @@ def register_task_tools(mcp: FastMCP):
             )
 
         except Exception as e:
-            logger.error(f"Error in update_tasks: {e}")
+            # logger.error(f"Error in update_tasks: {e}")
             return f"Error during task update: {str(e)}"
 
     @mcp.tool()
@@ -343,7 +343,7 @@ def register_task_tools(mcp: FastMCP):
             )
 
         except Exception as e:
-            logger.error(f"Error in complete_tasks: {e}")
+            # logger.error(f"Error in complete_tasks: {e}")
             return f"Error during task completion: {str(e)}"
 
     @mcp.tool()
@@ -416,7 +416,7 @@ def register_task_tools(mcp: FastMCP):
             )
 
         except Exception as e:
-            logger.error(f"Error in delete_tasks: {e}")
+            # logger.error(f"Error in delete_tasks: {e}")
             return f"Error during task deletion: {str(e)}"
 
     @mcp.tool()
@@ -510,5 +510,5 @@ def register_task_tools(mcp: FastMCP):
             )
 
         except Exception as e:
-            logger.error(f"Error in create_subtasks: {e}")
+            # logger.error(f"Error in create_subtasks: {e}")
             return f"Error during subtask creation: {str(e)}"

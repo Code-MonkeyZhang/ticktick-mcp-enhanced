@@ -1,10 +1,7 @@
 import os
 import requests
-import logging
 from typing import Dict, List, Any, Optional, Union
 from .auth import TickTickAuth
-
-logger = logging.getLogger(__name__)
 
 
 class TickTickClient:
@@ -48,9 +45,6 @@ class TickTickClient:
             response = requests.request(method, url, headers=self.headers, json=data)
 
             if response.status_code == 401:
-                logger.info(
-                    "Access token expired. Attempting to refresh is not implemented in this version (needs refresh token flow)."
-                )
                 return {
                     "error": "Access token expired or invalid. Please re-authenticate using 'start_authentication'."
                 }
@@ -62,7 +56,6 @@ class TickTickClient:
 
             return response.json()
         except requests.exceptions.RequestException as e:
-            logger.error(f"API request failed: {e}")
             return {"error": str(e)}
 
     def get_all_projects(self) -> List[Dict]:

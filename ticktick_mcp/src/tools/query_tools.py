@@ -5,7 +5,7 @@ This module contains MCP tools for querying and filtering tasks
 by various criteria such as due dates, priority, and search terms.
 """
 
-import logging
+# import logging
 from typing import Dict, Any, Optional
 from mcp.server.fastmcp import FastMCP
 
@@ -21,7 +21,7 @@ from ..utils.validators import (
 )
 from ..utils.logging_utils import log_interaction
 
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 
 def register_query_tools(mcp: FastMCP):
@@ -264,5 +264,5 @@ def register_query_tools(mcp: FastMCP):
                 )
 
         except Exception as e:
-            logger.error(f"Error in query_tasks: {e}")
+            # logger.error(f"Error in query_tasks: {e}")
             return f"Error querying tasks: {str(e)}"

@@ -43,7 +43,7 @@ def register_project_tools(mcp: FastMCP):
 
             return result
         except Exception as e:
-            logger.error(f"Error in get_all_projects: {e}")
+            # logger.error(f"Error in get_all_projects: {e}")
             return f"Error retrieving projects: {str(e)}"
 
     @mcp.tool()
@@ -95,7 +95,7 @@ def register_project_tools(mcp: FastMCP):
 
             return result
         except Exception as e:
-            logger.error(f"Error in get_project_info: {e}")
+            # logger.error(f"Error in get_project_info: {e}")
             return f"Error retrieving project information: {str(e)}"
 
     @mcp.tool()
@@ -125,7 +125,7 @@ def register_project_tools(mcp: FastMCP):
 
             return f"Project created successfully:\n\n" + format_project(project)
         except Exception as e:
-            logger.error(f"Error in create_project: {e}")
+            # logger.error(f"Error in create_project: {e}")
             return f"Error creating project: {str(e)}"
 
     @mcp.tool()
@@ -222,5 +222,5 @@ def register_project_tools(mcp: FastMCP):
                 return result_message
 
         except Exception as e:
-            logger.error(f"Error in delete_projects: {e}")
+            # logger.error(f"Error in delete_projects: {e}")
             return f"Error during project deletion: {str(e)}"

@@ -6,11 +6,8 @@ and global configuration settings.
 """
 
 import os
-import logging
 
 from .ticktick_client import TickTickClient
-
-logger = logging.getLogger(__name__)
 
 ticktick = None
 
@@ -20,11 +17,9 @@ def initialize_client():
     global ticktick
     try:
         ticktick = TickTickClient()
-        logger.info("TickTick client wrapper initialized")
 
         return True
     except Exception as e:
-        logger.error(f"Failed to initialize TickTick client wrapper: {e}")
         return False
 
 

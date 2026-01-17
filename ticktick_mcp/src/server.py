@@ -2,7 +2,6 @@
 Main MCP server for TickTick integration.
 """
 
-import logging
 from mcp.server.fastmcp import FastMCP
 
 from .log import setup_logging
