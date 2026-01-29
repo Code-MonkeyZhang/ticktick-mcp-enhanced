@@ -21,12 +21,12 @@ dependencies = [
 ]
 
 [project.scripts]
-ticktick-mcp = "ticktick_mcp.__main__:main"
+ticktick-mcp = "ticktick_mcp:main"
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
 include = ["ticktick_mcp*"]
