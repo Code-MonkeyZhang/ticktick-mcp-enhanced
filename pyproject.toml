@@ -34,10 +34,6 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 include = ["ticktick_mcp*"]
 
-[[tool.uv.index]]
-url = "https://mirrors.aliyun.com/pypi/simple"
-default = true
-
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
