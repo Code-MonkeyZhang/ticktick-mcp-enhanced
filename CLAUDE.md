@@ -21,9 +21,9 @@ uv pip install -e .
 uv run ticktick-mcp
 
 # Run the CLI
-uv run ticktick --help
-uv run ticktick -h                    # Short help option
-uv run ticktick examples              # Show usage examples
+uv run ticktick --help                # Show help with usage examples
+uv run ticktick -h                    # Short help option (same as --help)
+uv run ticktick                       # No args also shows help with examples
 
 # Top-level commands (flattened)
 uv run ticktick list                  # List all tasks
@@ -92,7 +92,7 @@ cli/
 - `ticktick today` - Show tasks due today
 - `ticktick overdue` - Show overdue tasks
 - `ticktick projects` - List all projects
-- `ticktick examples` - Show usage examples
+- `ticktick -h` / `ticktick` - Show help with usage examples
 
 **Authentication Commands:**
 - `ticktick auth login` - Interactive OAuth setup (prompts for credentials)

@@ -16,7 +16,10 @@ from ..console import (
 )
 
 
-app = typer.Typer(help="Project management commands")
+app = typer.Typer(
+    help="Project management commands",
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
 
 
 @app.command()

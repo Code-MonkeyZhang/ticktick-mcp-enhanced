@@ -11,7 +11,10 @@ from ..context import CLIContext
 from ..console import print_success, print_error, print_info, console
 
 
-app = typer.Typer(help="Authentication commands")
+app = typer.Typer(
+    help="Authentication commands",
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
 
 
 def _prompt_for_config():

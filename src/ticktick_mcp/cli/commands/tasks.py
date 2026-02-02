@@ -17,7 +17,10 @@ from ..console import (
 )
 
 
-app = typer.Typer(help="Task management commands")
+app = typer.Typer(
+    help="Task management commands",
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
 
 
 @app.command()

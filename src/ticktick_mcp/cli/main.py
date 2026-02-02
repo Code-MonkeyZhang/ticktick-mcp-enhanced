@@ -7,6 +7,9 @@ Enhanced with flattened command structure and -h short option support.
 
 import typer
 from typing import Optional
+from rich.panel import Panel
+from rich.table import Table
+from rich import box
 
 from . import __version__
 from .commands.auth import app as auth_app
@@ -20,12 +23,115 @@ from .console import (
     create_project_table,
 )
 
-# Use context_settings to enable -h as help option
+
+def print_help_with_examples():
+    """Print custom help with formatted examples."""
+    # Title
+    console.print()
+    console.print(
+        "[bold]Usage:[/bold] [cyan]ticktick[/cyan] [OPTIONS] COMMAND [ARGS]..."
+    )
+    console.print()
+    console.print("TickTick CLI - Manage your tasks from the command line")
+    console.print()
+
+    # Options section
+    console.print("[bold blue]Options:[/bold blue]")
+    options_table = Table(box=None, show_header=False, padding=(0, 2))
+    options_table.add_column(style="cyan", width=18)
+    options_table.add_column()
+    options_table.add_row("-h, --help", "Show this message and exit.")
+    options_table.add_row("-v, --version", "Show version and exit")
+    console.print(options_table)
+    console.print()
+
+    # Commands section
+    console.print("[bold green]Commands:[/bold green]")
+    commands_table = Table(box=None, show_header=False, padding=(0, 2))
+    commands_table.add_column(style="cyan", width=18)
+    commands_table.add_column()
+    commands_table.add_row("list", "List all tasks across all projects")
+    commands_table.add_row("today", "Show tasks due today")
+    commands_table.add_row("overdue", "Show overdue tasks")
+    commands_table.add_row("projects", "List all projects")
+    commands_table.add_row("auth", "Authentication commands")
+    commands_table.add_row("tasks", "Task management commands")
+    console.print(commands_table)
+    console.print()
+
+    # Examples section with styled panels
+    console.print("[bold cyan]Examples:[/bold cyan]")
+    console.print()
+
+    # Quick Start
+    quick_start = Table(box=box.SIMPLE, show_header=False, padding=(0, 1))
+    quick_start.add_column(style="green", width=36)
+    quick_start.add_column(style="dim")
+    quick_start.add_row("ticktick list", "List all tasks")
+    quick_start.add_row("ticktick today", "Show today's tasks")
+    quick_start.add_row("ticktick overdue", "Show overdue tasks")
+    quick_start.add_row("ticktick projects", "List all projects")
+    console.print(
+        Panel(
+            quick_start, title="[bold cyan]Quick Start[/bold cyan]", border_style="cyan"
+        )
+    )
+
+    # Authentication
+    auth_table = Table(box=box.SIMPLE, show_header=False, padding=(0, 1))
+    auth_table.add_column(style="green", width=36)
+    auth_table.add_column(style="dim")
+    auth_table.add_row("ticktick auth login", "Login to TickTick")
+    auth_table.add_row("ticktick auth status", "Check auth status")
+    auth_table.add_row("ticktick auth logout", "Logout")
+    console.print(
+        Panel(
+            auth_table,
+            title="[bold magenta]Authentication[/bold magenta]",
+            border_style="magenta",
+        )
+    )
+
+    # Task Management
+    task_table = Table(box=box.SIMPLE, show_header=False, padding=(0, 1))
+    task_table.add_column(style="green", width=36)
+    task_table.add_column(style="dim")
+    task_table.add_row('ticktick tasks create "Task" -p <id>', "Create task")
+    task_table.add_row("ticktick tasks complete <id> -p <id>", "Complete task")
+    task_table.add_row("ticktick tasks delete <id> -p <id>", "Delete task")
+    task_table.add_row("ticktick tasks view <id> -p <id>", "View task details")
+    console.print(
+        Panel(
+            task_table,
+            title="[bold yellow]Task Management[/bold yellow]",
+            border_style="yellow",
+        )
+    )
+
+    # Filtering
+    filter_table = Table(box=box.SIMPLE, show_header=False, padding=(0, 1))
+    filter_table.add_column(style="green", width=36)
+    filter_table.add_column(style="dim")
+    filter_table.add_row("ticktick list --priority high", "High priority tasks")
+    filter_table.add_row('ticktick list -s "keyword"', "Search tasks")
+    filter_table.add_row("ticktick list -p <project-id>", "Tasks in project")
+    console.print(
+        Panel(
+            filter_table,
+            title="[bold blue]Filtering & Search[/bold blue]",
+            border_style="blue",
+        )
+    )
+
+    console.print()
+
+
+# Main app - no_args_is_help disabled, we handle empty args in callback
 app = typer.Typer(
     help="TickTick CLI - Manage your tasks from the command line",
-    no_args_is_help=True,
+    no_args_is_help=False,  # We handle this in callback to show custom help
     add_completion=False,
-    context_settings={"help_option_names": ["-h", "--help"]},
+    rich_markup_mode="rich",
 )
 
 
@@ -36,18 +142,22 @@ def version_callback(value: bool):
         raise typer.Exit()
 
 
-# Register subcommands with -h support
-auth_app.context_settings = {"help_option_names": ["-h", "--help"]}
-tasks_app.context_settings = {"help_option_names": ["-h", "--help"]}
-projects_app.context_settings = {"help_option_names": ["-h", "--help"]}
+def help_callback(value: bool):
+    """Show custom help with examples and exit."""
+    if value:
+        print_help_with_examples()
+        raise typer.Exit()
 
+
+# Register subcommands
 app.add_typer(auth_app, name="auth")
 app.add_typer(tasks_app, name="tasks")
 app.add_typer(projects_app, name="projects")
 
 
-@app.callback()
+@app.callback(invoke_without_command=True)
 def main(
+    ctx: typer.Context,
     version: Optional[bool] = typer.Option(
         None,
         "--version",
@@ -56,9 +166,25 @@ def main(
         callback=version_callback,
         is_eager=True,
     ),
+    help: Optional[bool] = typer.Option(
+        None,
+        "--help",
+        "-h",
+        help="Show this message and exit.",
+        callback=help_callback,
+        is_eager=True,
+    ),
 ):
-    """TickTick CLI - Manage your tasks from the command line."""
-    pass
+    """TickTick CLI - Manage your tasks from the command line.
+
+    If no command is specified, shows help with examples.
+    """
+    # If no subcommand was invoked, show custom help
+    if ctx.resilient_parsing:
+        return
+    if ctx.invoked_subcommand is None:
+        print_help_with_examples()
+        raise typer.Exit()
 
 
 # Flattened top-level commands for common operations
@@ -238,61 +364,6 @@ def projects():
     console.print(f"\n[bold]Projects[/bold] - {len(projects_list)} projects\n")
     table = create_project_table(projects_list)
     console.print(table)
-
-
-@app.command(context_settings={"help_option_names": ["-h", "--help"]})
-def examples():
-    """Show usage examples."""
-    console.print("\n[bold cyan]TickTick CLI Examples[/bold cyan]\n")
-
-    console.print("[bold]Common Commands:[/bold]")
-    console.print(
-        "  [green]ticktick list[/green]              List all tasks\n"
-        "  [green]ticktick today[/green]             Show tasks due today\n"
-        "  [green]ticktick overdue[/green]           Show overdue tasks\n"
-        "  [green]ticktick projects[/green]          List all projects\n"
-    )
-
-    console.print("\n[bold]Task Management:[/bold]")
-    console.print(
-        "  [green]ticktick tasks list[/green]        List tasks (with filters)\n"
-        "  [green]ticktick tasks today[/green]       Show today's tasks\n"
-        "  [green]ticktick tasks create[/green]      Create a new task\n"
-        "  [green]ticktick tasks complete[/green]    Mark task as complete\n"
-        "  [green]ticktick tasks delete[/green]      Delete a task\n"
-    )
-
-    console.print("\n[bold]Project Management:[/bold]")
-    console.print(
-        "  [green]ticktick projects list[/green]     List all projects\n"
-        "  [green]ticktick projects create[/green]   Create a new project\n"
-        "  [green]ticktick projects view[/green]     View project details\n"
-        "  [green]ticktick projects delete[/green]   Delete a project\n"
-    )
-
-    console.print("\n[bold]Authentication:[/bold]")
-    console.print(
-        "  [green]ticktick auth login[/green]        Login to TickTick\n"
-        "  [green]ticktick auth status[/green]       Check authentication status\n"
-        "  [green]ticktick auth logout[/green]       Logout and clear credentials\n"
-    )
-
-    console.print("\n[bold]Filtering:[/bold]")
-    console.print(
-        "  [green]ticktick list --priority high[/green]     List high priority tasks\n"
-        "  [green]ticktick list -s 'meeting'[/green]        Search for 'meeting'\n"
-        "  [green]ticktick list -p <project-id>[/green]     List tasks in project\n"
-    )
-
-    console.print("\n[bold]Help:[/bold]")
-    console.print(
-        "  [green]ticktick -h[/green]               Show this help\n"
-        "  [green]ticktick <command> -h[/green]     Show command-specific help\n"
-    )
-
-    console.print(
-        "\n[dim]For more information, visit: https://github.com/moyueheng/ticktick-mcp-enhanced[/dim]\n"
-    )
 
 
 if __name__ == "__main__":
