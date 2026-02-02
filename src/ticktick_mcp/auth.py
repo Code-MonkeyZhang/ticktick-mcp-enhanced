@@ -13,6 +13,13 @@ import requests
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
+from typing import Optional
+
+from .config import (
+    save_config as save_config_file,
+    load_config_with_env_fallback,
+    clear_config as clear_config_file,
+)
 
 PACKAGE_ROOT = Path(__file__).parent.parent
 PROJECT_ROOT = PACKAGE_ROOT.parent
@@ -93,15 +100,29 @@ class TickTickAuth:
     """TickTick OAuth authentication manager."""
 
     def __init__(self):
-        self.account_type = os.getenv("TICKTICK_ACCOUNT_TYPE", "global").lower()
+        # Try loading from config file first, fallback to env vars
+        config = load_config_with_env_fallback()
+
+        if config:
+            self.account_type = config.get("account_type", "global").lower()
+            self.client_id = config.get("client_id")
+            self.client_secret = config.get("client_secret")
+        else:
+            # Fallback to old behavior
+            self.account_type = os.getenv("TICKTICK_ACCOUNT_TYPE", "global").lower()
+            self.client_id = os.getenv("TICKTICK_CLIENT_ID")
+            self.client_secret = os.getenv("TICKTICK_CLIENT_SECRET")
+
         if self.account_type not in VERSION_CONFIGS:
             self.account_type = "global"
 
         self.config = VERSION_CONFIGS[self.account_type]
 
-        self.client_id = os.getenv("TICKTICK_CLIENT_ID")
-        self.client_secret = os.getenv("TICKTICK_CLIENT_SECRET")
-        self.redirect_uri = os.getenv(
+        # Load redirect_uri from config or env
+        redirect_uri = None
+        if config and "redirect_uri" in config:
+            redirect_uri = config["redirect_uri"]
+        self.redirect_uri = redirect_uri or os.getenv(
             "TICKTICK_REDIRECT_URI", "http://localhost:8000/callback"
         )
 
@@ -110,6 +131,44 @@ class TickTickAuth:
 
         self._server = None
         self._server_thread = None
+
+    def save_config(
+        self,
+        account_type: str,
+        client_id: str,
+        client_secret: str,
+        redirect_uri: Optional[str] = None,
+    ) -> None:
+        """Save configuration to file for persistence.
+
+        Args:
+            account_type: Account type ("china" or "global")
+            client_id: OAuth client ID
+            client_secret: OAuth client secret
+            redirect_uri: OAuth redirect URI (optional)
+        """
+        save_config_file(
+            account_type=account_type,
+            client_id=client_id,
+            client_secret=client_secret,
+            redirect_uri=redirect_uri,
+        )
+        # Update instance
+        self.account_type = account_type
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.config = VERSION_CONFIGS[account_type]
+        if redirect_uri:
+            self.redirect_uri = redirect_uri
+
+    def clear_config(self) -> None:
+        """Clear saved configuration file and reset instance attributes."""
+        clear_config_file()
+        # Reset instance attributes
+        self.account_type = "global"
+        self.client_id = None
+        self.client_secret = None
+        self.config = VERSION_CONFIGS["global"]
 
     def is_configured(self) -> bool:
         """Check if Client ID and Secret are provided."""
