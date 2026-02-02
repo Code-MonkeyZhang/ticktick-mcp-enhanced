@@ -20,6 +20,12 @@ uv pip install -e .
 # Run the MCP server
 uv run ticktick-mcp
 
+# Run the CLI (NEW)
+uv run ticktick --help
+uv run ticktick auth status
+uv run ticktick tasks list
+uv run ticktick projects list
+
 # Build distribution package
 uv run python -m build
 ```
@@ -46,6 +52,28 @@ ticktick-mcp (CLI)
 | **API Client** | `ticktick_client.py` | HTTP requests to TickTick API |
 | **Client Manager** | `client_manager.py` | Global singleton client instance (`ticktick` variable) |
 | **Logging** | `log.py` | Session-based file logging (strictly file-only, no stdout) |
+| **CLI** | `cli/` | Typer-based command-line interface |
+
+### CLI Structure (NEW)
+
+The CLI is organized under `src/ticktick_mcp/cli/`:
+
+```
+cli/
+├── __init__.py         # Version info
+├── main.py             # Main entry point (ticktick command)
+├── console.py          # Rich console utilities and table rendering
+├── context.py          # CLI context management (auth, client)
+└── commands/
+    ├── auth.py         # Authentication commands
+    ├── tasks.py        # Task management commands
+    └── projects.py     # Project management commands
+```
+
+**CLI Commands:**
+- `ticktick auth status/login/logout/finish` - Authentication management
+- `ticktick tasks list/today/overdue/create/complete/delete/view` - Task operations
+- `ticktick projects list/create/view/delete` - Project operations
 
 ### Tool Organization
 
@@ -73,9 +101,36 @@ Tools are organized by category in `src/ticktick_mcp/tools/`:
 | `TICKTICK_DISPLAY_TIMEZONE` | Display timezone | `"Local"` |
 | `MCP_LOG_ENABLE` | Enable file logging (`"true"` or `"false"`) | `"false"` |
 
-## Important Notes
+## Testing
 
-- **Token Storage**: `.ticktick_token.json` in project root (gitignored)
-- **Logging**: When enabled, logs are written to `logs/session_YYYYMMDD_HHMMSS.log` - never to stdout/stderr to avoid interfering with MCP protocol
-- **API Endpoints**: Different for china vs global (see `VERSION_CONFIGS` in `auth.py`)
-- **Authentication Flow**: OAuth 2.0 with local HTTP callback server
+### Unit Tests
+
+```bash
+# Run all unit tests
+uv run pytest tests/
+
+# Run with coverage
+uv run pytest tests/ --cov=src/ticktick_mcp --cov-report=term
+
+# Run specific test file
+uv run pytest tests/test_cli_console.py
+```
+
+### Integration Tests
+
+Integration tests require real API credentials and make actual API calls:
+
+```bash
+# Set environment variables and run integration tests
+export TICKTICK_CLIENT_ID="your_client_id"
+export TICKTICK_CLIENT_SECRET="your_client_secret"
+export TICKTICK_RUN_INTEGRATION_TESTS=1
+
+# First authenticate
+uv run ticktick auth login
+
+# Then run integration tests
+uv run pytest tests/integration/ -v
+```
+
+**Warning**: Integration tests will create, modify, and delete real tasks/projects in your TickTick account. Use a test account!
