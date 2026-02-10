@@ -1,3 +1,5 @@
+[English](README_en.md)
+
 <p align="center">
   <img src="logo.png" width="128" alt="TickTick MCP Logo">
 </p>
@@ -6,7 +8,9 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
-一个 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) 服务器，允许大语言模型管理你的滴答清单/TickTick 待办事项。
+[English Version is Here!](README_en.md)
+
+这是一个基于滴答清单官方API的本地MCP服务，能让用户通过LLM和Agent应用轻松管理待办事项
 
 🔗 **API 文档**: [滴答清单官方 OpenAPI](https://developer.dida365.com/docs#/openapi)
 
