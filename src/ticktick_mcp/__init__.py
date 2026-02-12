@@ -1,9 +1,3 @@
 # TickTick MCP Server
 
-
-def main():
-    """MCP Server 入口"""
-    from .server import register_all_tools, mcp
-
-    register_all_tools()
-    mcp.run()
+from .server import main  # noqa: F401 — re-export for backwards compatibility
