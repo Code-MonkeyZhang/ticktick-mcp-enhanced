@@ -21,7 +21,7 @@ dependencies = [
 ]
 
 [project.scripts]
-ticktick-mcp = "ticktick_mcp:main"
+ticktick-mcp = "ticktick_mcp.server:main"
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
