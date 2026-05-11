@@ -56,16 +56,24 @@ def register_task_tools(mcp: FastMCP):
                 - priority (optional): Priority level - "none", "low", "medium", or "high"
                 - repeat_flag (optional): Recurring rules (e.g., "RRULE:FREQ=DAILY;INTERVAL=1")
                 - items (optional): List of subtask dictionaries
+                - reminders (optional): List of iCal TRIGGER strings. Without this, NO alarm fires
+                  even if due_date is set. Examples:
+                    ["TRIGGER:PT0S"]      → at due time
+                    ["TRIGGER:-PT15M"]    → 15 minutes before
+                    ["TRIGGER:-PT1H"]     → 1 hour before
+                    ["TRIGGER:-P1D"]      → 1 day before
+                    ["TRIGGER:-PT15M","TRIGGER:PT0S"]  → 15 min before AND at due
 
         Examples:
-            # Single task with Beijing timezone
+            # Single task with Beijing timezone, ring at due time
             {
                 "title": "Buy milk",
                 "project_id": "1234ABC",
                 "content": "2% organic",
                 "due_date": "2025-12-16T16:00:00+08:00",
                 "time_zone": "Asia/Shanghai",
-                "priority": "medium"
+                "priority": "medium",
+                "reminders": ["TRIGGER:PT0S"]
             }
 
             # Multiple tasks (one timed, one all-day by omitting due_date)
@@ -120,6 +128,7 @@ def register_task_tools(mcp: FastMCP):
                         priority=normalize_priority(task_data.get("priority", 0)) or 0,
                         repeat_flag=task_data.get("repeat_flag"),
                         items=task_data.get("items"),
+                        reminders=task_data.get("reminders"),
                     )
 
                     if "error" in result:
@@ -169,6 +178,8 @@ def register_task_tools(mcp: FastMCP):
                 - priority (optional): priority level - "none", "low", "medium", or "high"
                 - repeat_flag (optional): Recurring rules
                 - items (optional): List of subtask dictionaries
+                - reminders (optional): List of iCal TRIGGER strings (e.g., ["TRIGGER:PT0S"] = at due,
+                  ["TRIGGER:-PT15M"] = 15 min before). Pass [] to clear all reminders.
 
         Examples:
             # Single task update (set due date with timezone)
@@ -246,6 +257,7 @@ def register_task_tools(mcp: FastMCP):
                         priority=normalize_priority(task_data.get("priority")),
                         repeat_flag=task_data.get("repeat_flag"),
                         items=task_data.get("items"),
+                        reminders=task_data.get("reminders"),
                     )
 
                     if "error" in result:

@@ -114,6 +114,7 @@ class TickTickClient:
         repeat_flag: str = None,
         items: List[Dict] = None,
         time_zone: str = None,
+        reminders: List[str] = None,
     ) -> Dict:
         from .utils.validators import normalize_priority
 
@@ -134,6 +135,8 @@ class TickTickClient:
             data["repeatFlag"] = repeat_flag
         if items:
             data["items"] = items
+        if reminders is not None:
+            data["reminders"] = reminders
         return self._make_request("POST", "/task", data)
 
     def update_task(
@@ -149,6 +152,7 @@ class TickTickClient:
         repeat_flag: str = None,
         items: List[Dict] = None,
         time_zone: str = None,
+        reminders: List[str] = None,
     ) -> Dict:
         from .utils.validators import normalize_priority
 
@@ -173,6 +177,8 @@ class TickTickClient:
             data["repeatFlag"] = repeat_flag
         if items is not None:
             data["items"] = items
+        if reminders is not None:
+            data["reminders"] = reminders
         return self._make_request("POST", f"/task/{task_id}", data)
 
     def complete_task(self, project_id: str, task_id: str) -> Dict:
