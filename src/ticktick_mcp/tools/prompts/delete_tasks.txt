@@ -1,0 +1,20 @@
+Delete one or more tasks.
+
+Supports both single task and batch deletion. For single task, you can pass
+a dictionary directly. For multiple tasks, pass a list of dictionaries.
+
+Args:
+    tasks: Task dictionary or list of task dictionaries. Each task must contain:
+        - project_id (required): ID of the project
+        - task_id (required): ID of the task
+
+Examples:
+    # Single task
+    {"project_id": "xyz789", "task_id": "abc123"}
+
+    # Multiple tasks
+    [
+        {"project_id": "xyz789", "task_id": "abc123"},
+        {"project_id": "xyz789", "task_id": "def456"},
+        {"project_id": "abc123", "task_id": "ghi789"}
+    ]

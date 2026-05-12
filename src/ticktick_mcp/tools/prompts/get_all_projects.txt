@@ -1,0 +1,4 @@
+Get all projects from TickTick.
+
+Note: This does not include the special "Inbox" project.
+To get inbox information and tasks, use get_project_info(project_id="inbox").

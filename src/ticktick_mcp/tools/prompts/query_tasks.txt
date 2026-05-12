@@ -1,0 +1,30 @@
+Unified task query tool with flexible multi-dimensional filtering.
+
+All parameters are optional. When no filters are provided, returns all tasks.
+Multiple filters can be combined - tasks must match ALL specified criteria (AND logic).
+
+Args:
+    task_id: Get a specific task by ID. When combined with project_id, uses direct API
+            call (most efficient). When used alone, searches all tasks for matching ID.
+            Can be combined with other filters to verify task properties.
+    project_id: Limit search to specific project (use "inbox" for inbox tasks).
+            When combined with task_id, enables direct API lookup.
+    date_filter: Filter by date - one of:
+        - "today": Tasks due today
+        - "tomorrow": Tasks due tomorrow
+        - "overdue": Overdue tasks
+        - "next_7_days": Tasks due within the next 7 days
+        - "custom": Tasks due in a specific number of days (requires custom_days)
+    custom_days: Number of days from today (only for date_filter="custom")
+                e.g., 0 for today, 1 for tomorrow, 3 for 3 days from now
+    priority: Filter by priority level: "none", "low", "medium","high"(case-insensitive):
+    search_term: Search keyword in title, content, or subtask titles (case-insensitive)
+
+Examples:
+    query_tasks()                                            → All tasks
+    query_tasks(task_id="abc123", project_id="xyz789")       → Get specific task
+    query_tasks(task_id="abc123")                            → Find task by ID across all projects
+    query_tasks(date_filter="today")                         → Tasks due today
+    query_tasks(priority="high")                             → High priority tasks
+    query_tasks(date_filter="today", priority="high")        → High priority tasks due today
+    query_tasks(search_term="meeting")                       → Tasks containing "meeting"

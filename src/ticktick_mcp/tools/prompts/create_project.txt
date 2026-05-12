@@ -1,0 +1,6 @@
+Create a new project in TickTick.
+
+Args:
+    name: Project name
+    color: Color code (hex format) (optional)
+    view_mode: View mode - one of list, kanban, or timeline (optional)

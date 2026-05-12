@@ -1,0 +1,16 @@
+Get comprehensive information about a project, including its details and all tasks.
+
+This tool provides a complete view of a project in one call, showing both
+the project metadata (name, color, view mode, etc.) and all tasks within it.
+
+Args:
+    project_id: ID of the project, or "inbox" to get inbox information
+
+Returns:
+    A formatted string containing:
+    - Project basic information (name, ID, color, etc.)
+    - List of all tasks in the project with their details
+
+Examples:
+    - get_project_info("abc123") → Get project info and tasks
+    - get_project_info("inbox") → Get inbox info and tasks

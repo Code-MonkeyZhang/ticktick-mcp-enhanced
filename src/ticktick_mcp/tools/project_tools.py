@@ -12,6 +12,7 @@ from mcp.server.fastmcp import FastMCP
 from ..client_manager import ensure_client
 from ..utils.formatters import format_project, format_task
 from ..utils.logging_utils import log_interaction
+from .prompts import load_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -19,15 +20,9 @@ logger = logging.getLogger(__name__)
 def register_project_tools(mcp: FastMCP):
     """Register all project-related MCP tools."""
 
-    @mcp.tool()
+    @mcp.tool(description=load_prompt("get_all_projects"))
     @log_interaction
     async def get_all_projects() -> str:
-        """
-        Get all projects from TickTick.
-
-        Note: This does not include the special "Inbox" project.
-        To get inbox information and tasks, use get_project_info(project_id="inbox").
-        """
         try:
             ticktick = ensure_client()
             projects = ticktick.get_all_projects()
@@ -46,27 +41,9 @@ def register_project_tools(mcp: FastMCP):
             # logger.error(f"Error in get_all_projects: {e}")
             return f"Error retrieving projects: {str(e)}"
 
-    @mcp.tool()
+    @mcp.tool(description=load_prompt("get_project_info"))
     @log_interaction
     async def get_project_info(project_id: str) -> str:
-        """
-        Get comprehensive information about a project, including its details and all tasks.
-
-        This tool provides a complete view of a project in one call, showing both
-        the project metadata (name, color, view mode, etc.) and all tasks within it.
-
-        Args:
-            project_id: ID of the project, or "inbox" to get inbox information
-
-        Returns:
-            A formatted string containing:
-            - Project basic information (name, ID, color, etc.)
-            - List of all tasks in the project with their details
-
-        Examples:
-            - get_project_info("abc123") → Get project info and tasks
-            - get_project_info("inbox") → Get inbox info and tasks
-        """
         try:
             ticktick = ensure_client()
             project_data = ticktick.get_project_with_data(project_id)
@@ -98,19 +75,11 @@ def register_project_tools(mcp: FastMCP):
             # logger.error(f"Error in get_project_info: {e}")
             return f"Error retrieving project information: {str(e)}"
 
-    @mcp.tool()
+    @mcp.tool(description=load_prompt("create_project"))
     @log_interaction
     async def create_project(
         name: str, color: str = "#F18181", view_mode: str = "list"
     ) -> str:
-        """
-        Create a new project in TickTick.
-
-        Args:
-            name: Project name
-            color: Color code (hex format) (optional)
-            view_mode: View mode - one of list, kanban, or timeline (optional)
-        """
         if view_mode not in ["list", "kanban", "timeline"]:
             return "Invalid view_mode. Must be one of: list, kanban, timeline."
 
@@ -128,25 +97,9 @@ def register_project_tools(mcp: FastMCP):
             # logger.error(f"Error in create_project: {e}")
             return f"Error creating project: {str(e)}"
 
-    @mcp.tool()
+    @mcp.tool(description=load_prompt("delete_projects"))
     @log_interaction
     async def delete_projects(projects: Union[str, List[str]]) -> str:
-        """
-        Delete one or more projects.
-
-        Supports both single project and batch deletion. For single project, you can pass
-        a project ID string directly. For multiple projects, pass a list of project IDs.
-
-        Args:
-            projects: Project ID string or list of project ID strings
-
-        Examples:
-            # Single project
-            "abc123"
-
-            # Multiple projects
-            ["abc123", "def456", "ghi789"]
-        """
         if isinstance(projects, str):
             project_list = [projects]
             single_project = True
