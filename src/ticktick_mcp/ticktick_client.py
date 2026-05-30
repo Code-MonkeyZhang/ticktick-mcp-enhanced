@@ -189,6 +189,21 @@ class TickTickClient:
     def delete_task(self, project_id: str, task_id: str) -> Dict:
         return self._make_request("DELETE", f"/project/{project_id}/task/{task_id}")
 
+    def get_completed_tasks(
+        self,
+        project_ids: List[str] = None,
+        start_date: str = None,
+        end_date: str = None,
+    ) -> Union[List[Dict], Dict]:
+        data = {}
+        if project_ids:
+            data["projectIds"] = project_ids
+        if start_date:
+            data["startDate"] = start_date
+        if end_date:
+            data["endDate"] = end_date
+        return self._make_request("POST", "/task/completed", data)
+
     def create_subtask(
         self,
         subtask_title: str,

@@ -19,10 +19,69 @@ from ..utils.validators import (
     normalize_priority,
     PRIORITY_NAME_MAP,
 )
+from ..utils.timezone import to_ticktick_date_format, get_user_timezone_today
 from ..utils.logging_utils import log_interaction
 from .prompts import load_prompt
 
 # logger = logging.getLogger(__name__)
+
+
+def _resolve_completed_date_range(date_filter: str):
+    """
+    将快捷日期筛选映射为已完成任务 API 所需的 start_date / end_date。
+
+    Args:
+        date_filter: 快捷日期选项 — "today", "yesterday", "this_week", "this_month"
+
+    Returns:
+        (start_date, end_date) 元组，格式为 ISO 日期字符串（含时区偏移）。
+    """
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+    import os
+
+    tz_name = os.getenv("TICKTICK_DISPLAY_TIMEZONE", "Local")
+    if tz_name and tz_name != "Local":
+        try:
+            tz = ZoneInfo(tz_name)
+        except Exception:
+            tz = None
+    else:
+        tz = None
+
+    now = datetime.now(tz) if tz else datetime.now()
+    today = now.date()
+
+    if date_filter == "today":
+        start = datetime.combine(today, datetime.min.time())
+        end = datetime.combine(today, datetime.max.time())
+    elif date_filter == "yesterday":
+        yesterday = today - timedelta(days=1)
+        start = datetime.combine(yesterday, datetime.min.time())
+        end = datetime.combine(yesterday, datetime.max.time())
+    elif date_filter == "this_week":
+        monday = today - timedelta(days=today.weekday())
+        sunday = monday + timedelta(days=6)
+        start = datetime.combine(monday, datetime.min.time())
+        end = datetime.combine(sunday, datetime.max.time())
+    elif date_filter == "this_month":
+        first = today.replace(day=1)
+        last_day = (first.replace(month=first.month % 12 + 1, day=1) - timedelta(days=1)).day if first.month < 12 else 31
+        last = first.replace(day=last_day)
+        start = datetime.combine(first, datetime.min.time())
+        end = datetime.combine(last, datetime.max.time())
+    else:
+        return None, None
+
+    if tz:
+        start = start.replace(tzinfo=tz)
+        end = end.replace(tzinfo=tz)
+    else:
+        start = start.replace(tzinfo=now.tzinfo)
+        end = end.replace(tzinfo=now.tzinfo)
+
+    fmt = "%Y-%m-%dT%H:%M:%S%z"
+    return start.strftime(fmt), end.strftime(fmt)
 
 
 def register_query_tools(mcp: FastMCP):
@@ -234,3 +293,58 @@ def register_query_tools(mcp: FastMCP):
         except Exception as e:
             # logger.error(f"Error in query_tasks: {e}")
             return f"Error querying tasks: {str(e)}"
+
+    @mcp.tool(description=load_prompt("get_completed_tasks"))
+    @log_interaction
+    async def get_completed_tasks(
+        project_id: Optional[str] = None,
+        date_filter: Optional[str] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+    ) -> str:
+        try:
+            valid_date_filters = ["today", "yesterday", "this_week", "this_month", "custom"]
+            if date_filter is not None and date_filter not in valid_date_filters:
+                return f"Invalid date_filter. Must be one of: {', '.join(valid_date_filters)}"
+
+            if date_filter == "custom" and (start_date is None or end_date is None):
+                return "start_date and end_date are required when date_filter='custom'"
+
+            ticktick = ensure_client()
+
+            project_ids = None
+            if project_id:
+                project_ids = [project_id]
+
+            if date_filter and date_filter != "custom":
+                start_date, end_date = _resolve_completed_date_range(date_filter)
+
+            if start_date:
+                start_date = to_ticktick_date_format(start_date)
+            if end_date:
+                end_date = to_ticktick_date_format(end_date)
+
+            result = ticktick.get_completed_tasks(
+                project_ids=project_ids,
+                start_date=start_date,
+                end_date=end_date,
+            )
+
+            if isinstance(result, dict) and "error" in result:
+                return f"Error fetching completed tasks: {result['error']}"
+
+            tasks = result if isinstance(result, list) else []
+
+            if not tasks:
+                return "No completed tasks found."
+
+            from ..utils.formatters import format_task
+
+            output = f"Found {len(tasks)} completed tasks:\n\n"
+            for i, task in enumerate(tasks, 1):
+                output += f"Task {i}:\n" + format_task(task) + "\n"
+
+            return output
+
+        except Exception as e:
+            return f"Error fetching completed tasks: {str(e)}"
