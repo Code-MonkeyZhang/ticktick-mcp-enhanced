@@ -1,19 +1,3 @@
-Update one or more existing tasks in TickTick.
+Update one or more existing tasks.
 
-Supports both single task and batch updates. For single task, you can pass
-a dictionary directly. For multiple tasks, pass a list of dictionaries.
-
-Args:
-    tasks: Task dictionary or list of task dictionaries. Each task must contain:
-        - task_id (required): ID of the task to update
-        - project_id (required): ID of the project the task belongs to
-        - title (optional): task title
-        - content (optional): task description/content
-        - desc (optional): description of checklist
-        - start_date (optional): ISO datetime WITH timezone offset
-        - due_date (optional): ISO datetime WITH timezone offset; omit to make an all-day task
-        - time_zone (optional): IANA timezone name (e.g., "Asia/Shanghai", "America/New_York")
-        - priority (optional): priority level - "none", "low", "medium", or "high"
-        - repeat_flag (optional): Recurring rules
-        - items (optional): List of subtask dictionaries
-        - reminders (optional): List of iCal TRIGGER strings. Pass [] to clear all reminders.
+Each task: task_id, project_id (required). Optional: title, content, start_date, due_date (ISO datetime with timezone; omit for all-day), time_zone, priority ("none"|"low"|"medium"|"high"), repeat_flag, items, reminders (iCal TRIGGER; pass [] to clear).

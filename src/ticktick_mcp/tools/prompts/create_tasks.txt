@@ -1,19 +1,3 @@
-Create one or more tasks in TickTick.
+Create one or more tasks.
 
-Supports both single task and batch creation. For single task, you can pass
-a dictionary directly. For multiple tasks, pass a list of dictionaries.
-
-Args:
-    tasks: Task dictionary or list of task dictionaries. Each task must contain:
-        - title (required): Task Name
-        - project_id (required): ID of the project for the task
-        - content (optional): Task description
-        - desc (optional): Description of checklist
-        - start_date (optional): ISO datetime WITH timezone offset (e.g., 2025-12-16T08:00:00+0000)
-        - due_date (optional): ISO datetime WITH timezone offset
-        - time_zone (required): IANA timezone name (e.g. "Asia/Shanghai")
-        - priority (optional): Priority level - "none", "low", "medium", or "high"
-        - repeat_flag (optional): Recurring rules (e.g., "RRULE:FREQ=DAILY;INTERVAL=1")
-        - items (optional): List of subtask dictionaries
-        - reminders (optional): List of iCal TRIGGER strings. Without this, NO alarm fires
-          even if due_date is set.
+Each task: title, project_id, time_zone (required). Optional: content, start_date, due_date (ISO datetime with timezone, e.g. "2025-12-16T08:00:00+0000"), priority ("none"|"low"|"medium"|"high"), repeat_flag (iCal RRULE, e.g. "RRULE:FREQ=DAILY;INTERVAL=1"), items (subtask list), reminders (iCal TRIGGER, e.g. ["TRIGGER:PT0S"]). Without reminders, no alarm fires even with due_date.

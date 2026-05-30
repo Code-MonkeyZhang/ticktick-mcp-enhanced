@@ -1,16 +1,5 @@
-Query completed (finished) tasks.
+Query completed tasks. All parameters optional.
 
-All parameters are optional. When no filters are provided, returns all completed tasks.
-
-Args:
-    project_id: Limit results to a specific project. When omitted, searches across all projects.
-    date_filter: Quick date range filter for completion time - one of:
-        - "today": Tasks completed today
-        - "yesterday": Tasks completed yesterday
-        - "this_week": Tasks completed this week (Monday to Sunday)
-        - "this_month": Tasks completed this month
-        - "custom": Custom date range (requires start_date and end_date)
-    start_date: Start of custom date range (ISO format with timezone, e.g., "2026-05-01T00:00:00+0800").
-            Only used when date_filter="custom". Filters tasks where completedTime >= start_date.
-    end_date: End of custom date range (ISO format with timezone, e.g., "2026-05-21T23:59:59+0800").
-            Only used when date_filter="custom". Filters tasks where completedTime <= end_date.
+project_id: limit to project.
+date_filter: "today"|"yesterday"|"this_week"|"this_month"|"custom".
+start_date, end_date: ISO datetime with timezone (only with date_filter="custom").

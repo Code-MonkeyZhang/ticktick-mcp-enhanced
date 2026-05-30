@@ -1,7 +1,3 @@
 Delete one or more projects.
 
-Supports both single project and batch deletion. For single project, you can pass
-a project ID string directly. For multiple projects, pass a list of project IDs.
-
-Args:
-    projects: Project ID string or list of project ID strings
+projects: project ID string or list of project ID strings.

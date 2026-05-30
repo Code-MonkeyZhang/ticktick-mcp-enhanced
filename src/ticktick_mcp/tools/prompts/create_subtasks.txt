@@ -1,10 +1,3 @@
-Create one or more subtasks for parent tasks. For single subtask, you can pass
-a dictionary directly. For multiple subtasks, pass a list of dictionaries.
+Create one or more subtasks for parent tasks.
 
-Args:
-    subtasks: Subtask dictionary or list of subtask dictionaries. Each subtask must contain:
-        - subtask_title (required): Title of the subtask
-        - parent_task_id (required): ID of the parent task
-        - project_id (required): ID of the project (must be same for both parent and subtask)
-        - content (optional): Content/description for the subtask
-        - priority (optional): Priority level - "none", "low", "medium", or "high" (case-insensitive)
+Each subtask: subtask_title, parent_task_id, project_id (required). Optional: content, priority ("none"|"low"|"medium"|"high").

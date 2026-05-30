@@ -1,9 +1,3 @@
 Mark one or more tasks as complete.
 
-Supports both single task and batch completion. For single task, you can pass
-a dictionary directly. For multiple tasks, pass a list of dictionaries.
-
-Args:
-    tasks: Task dictionary or list of task dictionaries. Each task must contain:
-        - project_id (required): ID of the project
-        - task_id (required): ID of the task
+Each task: project_id, task_id (required).
