@@ -10,7 +10,3 @@ Returns:
     A formatted string containing:
     - Project basic information (name, ID, color, etc.)
     - List of all tasks in the project with their details
-
-Examples:
-    - get_project_info("abc123") → Get project info and tasks
-    - get_project_info("inbox") → Get inbox info and tasks

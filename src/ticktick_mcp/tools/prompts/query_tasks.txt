@@ -19,12 +19,3 @@ Args:
                 e.g., 0 for today, 1 for tomorrow, 3 for 3 days from now
     priority: Filter by priority level: "none", "low", "medium","high"(case-insensitive):
     search_term: Search keyword in title, content, or subtask titles (case-insensitive)
-
-Examples:
-    query_tasks()                                            → All tasks
-    query_tasks(task_id="abc123", project_id="xyz789")       → Get specific task
-    query_tasks(task_id="abc123")                            → Find task by ID across all projects
-    query_tasks(date_filter="today")                         → Tasks due today
-    query_tasks(priority="high")                             → High priority tasks
-    query_tasks(date_filter="today", priority="high")        → High priority tasks due today
-    query_tasks(search_term="meeting")                       → Tasks containing "meeting"

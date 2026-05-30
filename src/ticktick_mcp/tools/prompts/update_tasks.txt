@@ -16,16 +16,4 @@ Args:
         - priority (optional): priority level - "none", "low", "medium", or "high"
         - repeat_flag (optional): Recurring rules
         - items (optional): List of subtask dictionaries
-        - reminders (optional): List of iCal TRIGGER strings (e.g., ["TRIGGER:PT0S"] = at due,
-          ["TRIGGER:-PT15M"] = 15 min before). Pass [] to clear all reminders.
-
-Examples:
-    # Single task update (set due date with timezone)
-    {
-        "task_id": "abc123",
-        "project_id": "xyz789",
-        "title": "Updated title",
-        "due_date": "2025-12-31T15:00:00+08:00",
-        "time_zone": "Asia/Shanghai",
-        "priority": "high"
-    }
+        - reminders (optional): List of iCal TRIGGER strings. Pass [] to clear all reminders.

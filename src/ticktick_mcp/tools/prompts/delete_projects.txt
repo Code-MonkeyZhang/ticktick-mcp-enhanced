@@ -5,10 +5,3 @@ a project ID string directly. For multiple projects, pass a list of project IDs.
 
 Args:
     projects: Project ID string or list of project ID strings
-
-Examples:
-    # Single project
-    "abc123"
-
-    # Multiple projects
-    ["abc123", "def456", "ghi789"]
