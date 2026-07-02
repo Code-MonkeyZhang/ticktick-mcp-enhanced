@@ -1,28 +1,34 @@
 import logging
 import functools
-from typing import Any, Callable
+from typing import Callable
 
 logger = logging.getLogger("ticktick_mcp")
 
+SENSITIVE_PARAMS = {"client_secret", "client_id", "password", "api_key", "token"}
+
 def log_interaction(func: Callable) -> Callable:
     """
-    Decorator to wrap MCP tool interactions (formerly for logging, now just error propagation).
+    Decorator to wrap MCP tool interactions.
+    Logs tool calls while redacting sensitive parameters.
     """
     @functools.wraps(func)
     async def wrapper(*args, **kwargs):
         tool_name = func.__name__
-        
-        logger.info(f"▶️ Tool Call: {tool_name} | Args: {args} | Kwargs: {kwargs}")
-            
+
+        safe_kwargs = {
+            k: "***" if k in SENSITIVE_PARAMS else v
+            for k, v in kwargs.items()
+        }
+        logger.info(f"▶️ Tool Call: {tool_name} | Args: {args} | Kwargs: {safe_kwargs}")
+
         try:
-            # Execute function
             result = await func(*args, **kwargs)
-            
+
             logger.info(f"✅ Tool Success: {tool_name}")
             return result
-            
+
         except Exception as e:
             logger.error(f"❌ Tool Error [{tool_name}] | Error: {str(e)}")
             raise e
-            
+
     return wrapper

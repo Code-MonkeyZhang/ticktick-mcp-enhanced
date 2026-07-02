@@ -1,11 +1,8 @@
 """
 Configuration management for TickTick MCP.
 
-This module handles client initialization, environment variables,
-and global configuration settings.
+This module handles client initialization and global configuration settings.
 """
-
-import os
 
 from .ticktick_client import TickTickClient
 
@@ -19,7 +16,7 @@ def initialize_client():
         ticktick = TickTickClient()
 
         return True
-    except Exception as e:
+    except Exception:
         return False
 
 

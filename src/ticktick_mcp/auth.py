@@ -2,21 +2,25 @@
 TickTick OAuth authentication module.
 
 This module handles the OAuth 2.0 flow logic and token management.
-Refactored to support 'headless' MCP operation.
+Credentials are provided at runtime via the login tool, not environment variables.
 """
 
 import os
 import json
 import base64
+import logging
 import urllib.parse
+import webbrowser
 import requests
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
+logger = logging.getLogger(__name__)
+
 PACKAGE_ROOT = Path(__file__).parent.parent
 PROJECT_ROOT = PACKAGE_ROOT.parent
-TOKEN_FILE = PROJECT_ROOT / ".ticktick_token.json"
+CONFIG_FILE = PROJECT_ROOT / ".ticktick_config.json"
 
 DEFAULT_SCOPES = ["tasks:read", "tasks:write"]
 
@@ -90,26 +94,58 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
 
 
 class TickTickAuth:
-    """TickTick OAuth authentication manager."""
+    """TickTick OAuth authentication manager.
+
+    Credentials are provided at runtime via configure() and persisted to
+    a local config file. On startup, __init__ loads the config file to
+    restore a previous session without requiring environment variables.
+    """
 
     def __init__(self):
-        self.account_type = os.getenv("TICKTICK_ACCOUNT_TYPE", "global").lower()
-        if self.account_type not in VERSION_CONFIGS:
-            self.account_type = "global"
-
-        self.config = VERSION_CONFIGS[self.account_type]
-
-        self.client_id = os.getenv("TICKTICK_CLIENT_ID")
-        self.client_secret = os.getenv("TICKTICK_CLIENT_SECRET")
-        self.redirect_uri = os.getenv(
-            "TICKTICK_REDIRECT_URI", "http://localhost:8000/callback"
-        )
-
+        self.account_type = None
+        self.config = None
+        self.client_id = None
+        self.client_secret = None
+        self.redirect_uri = "http://localhost:8000/callback"
         self.access_token = None
-        self.load_token()
-
+        self._raw_token = None
         self._server = None
         self._server_thread = None
+        self._auth_event = threading.Event()
+        self._auth_error = None
+        self._load_config()
+
+    def configure(self, client_id: str, client_secret: str,
+                  account_type: str = "china",
+                  redirect_uri: str = "http://localhost:8000/callback") -> bool:
+        """Set credentials at runtime and persist them to the config file.
+
+        Called by the login MCP tool when the user provides their OAuth
+        credentials.
+
+        Args:
+            client_id: OAuth application Client ID
+            client_secret: OAuth application Client Secret
+            account_type: "china" for Dida365 or "global" for TickTick international
+            redirect_uri: Callback URL registered in the developer console
+
+        Returns:
+            True if configuration succeeded, False if account_type is invalid
+        """
+        account_type = account_type.lower()
+        if account_type not in VERSION_CONFIGS:
+            logger.error(f"Invalid account_type: {account_type}")
+            return False
+
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.account_type = account_type
+        self.config = VERSION_CONFIGS[account_type]
+        self.redirect_uri = redirect_uri
+        self._save_config()
+
+        logger.info(f"Credentials configured for {self.config['name']}")
+        return True
 
     def is_configured(self) -> bool:
         """Check if Client ID and Secret are provided."""
@@ -136,14 +172,15 @@ class TickTickAuth:
             self._server_thread.daemon = True
             self._server_thread.start()
 
+            logger.info(f"Callback server started on port {port}")
         except Exception as e:
-            pass
+            logger.warning(f"Failed to start callback server: {e}")
 
     def get_auth_url(self) -> str:
         """Generate the authorization URL for the user."""
         if not self.is_configured():
             raise ValueError(
-                "Missing TICKTICK_CLIENT_ID or TICKTICK_CLIENT_SECRET in environment."
+                "Missing client_id or client_secret. Call configure() first."
             )
 
         params = {
@@ -157,7 +194,11 @@ class TickTickAuth:
         return f"{self.config['auth_url']}?{query_string}"
 
     def exchange_code(self, code: str) -> bool:
-        """Exchange auth code for access token."""
+        """Exchange auth code for access token.
+
+        On completion, signals the _auth_event so that start_oauth_flow
+        can stop blocking, regardless of success or failure.
+        """
         if not self.is_configured():
             return False
 
@@ -183,28 +224,95 @@ class TickTickAuth:
             token_data = response.json()
 
             self.save_token(token_data)
+            logger.info("Token exchange successful")
             return True
         except Exception as e:
+            self._auth_error = str(e)
+            logger.error(f"Token exchange failed: {e}")
             return False
+        finally:
+            self._auth_event.set()
+
+    def start_oauth_flow(self) -> str:
+        """Run the full OAuth flow and block until callback, error, or timeout.
+
+        Starts the local callback server, opens the browser for the user
+        to authorize, then blocks on _auth_event until exchange_code signals
+        completion. The blocking wait has a 120-second timeout.
+
+        Returns:
+            - "success" if authentication completed
+            - "error:{message}" if the code exchange failed
+            - "timeout:{url}" if the user did not authorize in time
+        """
+        self._auth_event.clear()
+        self._auth_error = None
+
+        self.start_local_server()
+        url = self.get_auth_url()
+
+        try:
+            webbrowser.open(url)
+            logger.info("Browser opened for authorization")
+        except Exception as e:
+            logger.warning(f"Failed to open browser: {e}")
+
+        self._auth_event.wait(timeout=120)
+
+        if self.is_authenticated():
+            return "success"
+        if self._auth_error:
+            return f"error:{self._auth_error}"
+
+        logger.warning("OAuth flow timed out waiting for callback")
+        return f"timeout:{url}"
 
     def save_token(self, token_data: dict):
-        """Save token to local file."""
-        try:
-            self.access_token = token_data.get("access_token")
-            with open(TOKEN_FILE, "w") as f:
-                json.dump(token_data, f)
-        except Exception as e:
-            pass
+        """Store the access token and persist the full config."""
+        self.access_token = token_data.get("access_token")
+        self._raw_token = token_data
+        self._save_config()
 
-    def load_token(self):
-        """Load token from local file."""
-        if TOKEN_FILE.exists():
-            try:
-                with open(TOKEN_FILE, "r") as f:
-                    data = json.load(f)
-                    self.access_token = data.get("access_token")
-            except Exception as e:
-                pass
+    def _save_config(self):
+        """Persist credentials and token to CONFIG_FILE."""
+        data = {
+            "account_type": self.account_type,
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "redirect_uri": self.redirect_uri,
+            "token": self._raw_token,
+        }
+        try:
+            with open(CONFIG_FILE, "w") as f:
+                json.dump(data, f)
+        except Exception as e:
+            logger.error(f"Failed to save config: {e}")
+
+    def _load_config(self):
+        """Load credentials and token from CONFIG_FILE on startup."""
+        if not CONFIG_FILE.exists():
+            return
+        try:
+            with open(CONFIG_FILE, "r") as f:
+                data = json.load(f)
+
+            self.account_type = data.get("account_type")
+            self.config = VERSION_CONFIGS.get(self.account_type)
+            self.client_id = data.get("client_id")
+            self.client_secret = data.get("client_secret")
+            self.redirect_uri = data.get(
+                "redirect_uri", "http://localhost:8000/callback"
+            )
+
+            token = data.get("token")
+            if token:
+                self.access_token = token.get("access_token")
+                self._raw_token = token
+
+            if self.is_configured():
+                logger.info(f"Config loaded for {self.config['name']}")
+        except Exception as e:
+            logger.error(f"Failed to load config: {e}")
 
     def get_headers(self) -> dict:
         """Get headers for API requests."""
@@ -213,4 +321,7 @@ class TickTickAuth:
         return {"Authorization": f"Bearer {self.access_token}"}
 
     def get_base_url(self) -> str:
+        """Get the API base URL for the configured account type."""
+        if not self.config:
+            return ""
         return self.config["base_url"]

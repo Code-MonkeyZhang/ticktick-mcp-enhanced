@@ -1,0 +1,2 @@
+Check the current connection status with TickTick.
+Returns whether the server is configured, authenticated, and ready to use.

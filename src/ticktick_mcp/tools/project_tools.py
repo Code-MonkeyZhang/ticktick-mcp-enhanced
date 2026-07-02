@@ -65,7 +65,7 @@ def register_project_tools(mcp: FastMCP):
             if project_id.lower() == "inbox" and not tasks:
                 result += "Your inbox is empty. 📭 Great job staying organized!\n"
             elif not tasks:
-                result += f"No tasks found in this project.\n"
+                result += "No tasks found in this project.\n"
             else:
                 for i, task in enumerate(tasks, 1):
                     result += f"Task {i}:\n" + format_task(task) + "\n"
@@ -92,7 +92,7 @@ def register_project_tools(mcp: FastMCP):
             if "error" in project:
                 return f"Error creating project: {project['error']}"
 
-            return f"Project created successfully:\n\n" + format_project(project)
+            return "Project created successfully:\n\n" + format_project(project)
         except Exception as e:
             # logger.error(f"Error in create_project: {e}")
             return f"Error creating project: {str(e)}"
@@ -155,7 +155,7 @@ def register_project_tools(mcp: FastMCP):
                 else:
                     return f"Failed to delete project:\n{failed_projects[0]}"
             else:
-                result_message = f"Batch project deletion completed.\n\n"
+                result_message = "Batch project deletion completed.\n\n"
                 result_message += (
                     f"Successfully deleted: {len(deleted_projects)} projects\n"
                 )

@@ -1,6 +1,5 @@
 import os
 import logging
-import sys
 from datetime import datetime
 
 def setup_logging(name: str = "ticktick_mcp"):

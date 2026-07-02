@@ -9,84 +9,66 @@ from .client_manager import initialize_client, get_client
 from .tools.project_tools import register_project_tools
 from .tools.task_tools import register_task_tools
 from .tools.query_tools import register_query_tools
+from .tools.prompts import load_prompt
 from .utils.logging_utils import log_interaction
 
 logger = setup_logging("server")
-mcp = FastMCP(
-    "ticktick"
-)
+mcp = FastMCP("ticktick")
+
 
 def register_auth_tools(mcp_server: FastMCP):
     """Register authentication related tools."""
 
-    @mcp_server.tool()
+    @mcp_server.tool(description=load_prompt("ticktick_status"))
     @log_interaction
     async def ticktick_status() -> str:
-        """
-        Check the current connection status with TickTick.
-        Returns whether the server is authenticated and ready to use.
-        """
         client = get_client()
         if not client:
             return "Error: TickTick client not initialized."
+
+        if not client.auth.is_configured():
+            return "❌ Not configured. Please use the 'login' tool to provide your TickTick OAuth credentials."
 
         if client.auth.is_authenticated():
             return (
                 f"✅ Connected to {client.auth.config['name']}. Ready to manage tasks."
             )
         else:
-            return "❌ Not Authenticated. Please use the 'start_authentication' tool to log in."
+            return "❌ Configured but not authenticated. Please use the 'login' tool to log in."
 
-    @mcp_server.tool()
+    @mcp_server.tool(description=load_prompt("login"))
     @log_interaction
-    async def start_authentication() -> str:
-        """
-        Start the authentication process.
-        Returns a URL that the user must visit to authorize the application.
-        """
+    async def login(
+        client_id: str,
+        client_secret: str,
+        account_type: str = "china",
+        redirect_uri: str = "http://localhost:8000/callback",
+    ) -> str:
         client = get_client()
         if not client:
             return "Error: TickTick client not initialized."
 
-        if not client.auth.is_configured():
-            return "Error: Missing Client ID or Client Secret in configuration."
+        if not client.auth.configure(
+            client_id, client_secret, account_type, redirect_uri
+        ):
+            return (
+                "❌ Invalid account_type. Use 'china' for Dida365 "
+                "or 'global' for TickTick international."
+            )
 
-        try:
-            client.auth.start_local_server()
+        result = client.auth.start_oauth_flow()
 
-            url = client.auth.get_auth_url()
-            return f"""
-Please open the following URL in your browser to authorize TickTick:
-
-{url}
-
-**Automatic Login:**
-After you authorize, you will be automatically redirected to a local page confirming success.
-You do NOT need to copy any code. Just close the window and return here.
-
-**Manual Fallback:**
-If the automatic login fails (e.g., page connection refused), please copy the 'code' parameter from the redirected URL and use the 'finish_authentication' tool manually.
-"""
-        except Exception as e:
-            return f"Error generating auth URL: {str(e)}"
-
-    @mcp_server.tool()
-    @log_interaction
-    async def finish_authentication(code: str) -> str:
-        """
-        Complete the authentication process using the code obtained from the browser.
-
-        Args:
-            code: The authorization code copied from the redirect URL.
-        """
-        client = get_client()
-        if not client:
-            return "Error: TickTick client not initialized."
-
-        if client.auth.exchange_code(code):
-            return "✅ Authentication successful! Token saved locally. You can now use all task tools."
+        if result == "success":
+            return "✅ Login successful! You can now manage your tasks."
+        elif result.startswith("error:"):
+            detail = result[len("error:"):]
+            return f"❌ Authorization failed: {detail}. Please try 'login' again."
         else:
-            return "❌ Authentication failed. The code might be invalid or expired. Please try 'start_authentication' again."
+            url = result[len("timeout:"):]
+            return (
+                f"⏰ Login timed out. If the browser did not open automatically, "
+                f"please visit this URL manually:\n{url}"
+            )
 
 
 def register_all_tools():

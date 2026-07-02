@@ -1,6 +1,5 @@
-import os
 import requests
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, List, Union
 from .auth import TickTickAuth
 
 
@@ -34,10 +33,11 @@ class TickTickClient:
         """
         Makes a request to the TickTick API.
         """
+        if not self.auth.is_configured():
+            return {"error": "Not configured. Please use the 'login' tool."}
+
         if not self.auth.is_authenticated():
-            return {
-                "error": "Not authenticated. Please use 'start_authentication' tool."
-            }
+            return {"error": "Not authenticated. Please use the 'login' tool."}
 
         url = f"{self.base_url}{endpoint}"
 
@@ -46,7 +46,7 @@ class TickTickClient:
 
             if response.status_code == 401:
                 return {
-                    "error": "Access token expired or invalid. Please re-authenticate using 'start_authentication'."
+                    "error": "Access token expired or invalid. Please use the 'login' tool to re-authenticate."
                 }
 
             response.raise_for_status()

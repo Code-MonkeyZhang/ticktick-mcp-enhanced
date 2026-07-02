@@ -14,9 +14,9 @@ venv/
 ENV/
 env/
 
-# Environment variables (contains sensitive API keys)
+# OAuth credentials and tokens
 .env
-.ticktick_token.json
+.ticktick_config.json
 
 # IDE specific files
 .idea/

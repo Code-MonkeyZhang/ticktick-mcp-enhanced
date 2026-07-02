@@ -17,7 +17,6 @@ from ..utils.validators import (
     is_task_due_in_days,
     task_matches_search,
     normalize_priority,
-    PRIORITY_NAME_MAP,
 )
 from ..utils.logging_utils import log_interaction
 from .prompts import load_prompt

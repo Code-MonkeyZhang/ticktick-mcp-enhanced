@@ -1,0 +1,22 @@
+Log in to TickTick by providing OAuth credentials.
+
+Ask the user for all four parameters. They can be found on the
+developer console app settings page:
+
+- China / Dida365: https://developer.dida365.com/manage
+- Global / TickTick: https://developer.ticktick.com/manage
+
+Args:
+    client_id (required): OAuth application Client ID, shown on the app page.
+    client_secret (required): OAuth application Client Secret, shown on the app page.
+    account_type (optional, default "china"): "china" for Dida365 or "global"
+        for TickTick international. Use the default unless the user explicitly
+        says they use the international version (ticktick.com).
+    redirect_uri (optional, default "http://localhost:8000/callback"): the
+        callback URL configured in the developer console. Use the default
+        unless the user explicitly states a different value. Never invent
+        a URL — if the user does not provide one, use the default.
+
+After calling this tool, a browser window opens automatically for
+the user to authorize. The tool blocks until authorization completes
+or times out (up to 120 seconds).
