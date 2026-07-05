@@ -1,0 +1,33 @@
+Create one or more habits in TickTick.
+
+Supports both single habit and batch creation. For a single habit, pass a
+dictionary directly. For multiple habits, pass a list of dictionaries.
+
+Args:
+    habits: Habit dictionary or list of habit dictionaries. Each habit must contain:
+        - name (required): Habit name (max 1000 characters)
+        - color (optional): Hex color code, e.g. "#4D8CF5"
+        - type (optional): Habit type, e.g. "Boolean"
+        - goal (optional): Numeric goal, default 1.0
+        - step (optional): Numeric step value
+        - unit (optional): Unit of the goal, e.g. "Count"
+        - repeat_rule (optional): Recurrence rule, e.g. "RRULE:FREQ=DAILY;INTERVAL=1"
+        - reminders (optional): List of reminder trigger strings
+        - encouragement (optional): Encouragement message
+        - status (optional): Habit status
+
+Examples:
+    # Single boolean habit, repeated daily
+    {
+        "name": "Read",
+        "color": "#4D8CF5",
+        "type": "Boolean",
+        "goal": 1.0,
+        "repeat_rule": "RRULE:FREQ=DAILY;INTERVAL=1"
+    }
+
+    # Multiple habits
+    [
+        {"name": "Read", "repeat_rule": "RRULE:FREQ=DAILY;INTERVAL=1"},
+        {"name": "Exercise", "repeat_rule": "RRULE:FREQ=WEEKLY;BYDAY=MO,WE,FR"}
+    ]

@@ -9,6 +9,7 @@ import os
 import re
 import logging
 from datetime import datetime, date
+from typing import Optional
 from zoneinfo import ZoneInfo
 
 # Set up logging
@@ -141,3 +142,20 @@ def get_user_timezone_today() -> date:
             # Fallback to local timezone if user timezone is invalid
             pass
     return datetime.now().date()
+
+
+def date_to_stamp(date_str: Optional[str] = None) -> int:
+    """Convert a date to the TickTick habit check-in stamp (YYYYMMDD integer).
+
+    Args:
+        date_str: Date in YYYY-MM-DD format. When omitted, today (in the user's
+            timezone) is used.
+
+    Returns:
+        Integer stamp such as 20260704.
+    """
+    if date_str:
+        parsed = datetime.strptime(date_str, "%Y-%m-%d").date()
+    else:
+        parsed = get_user_timezone_today()
+    return int(parsed.strftime("%Y%m%d"))

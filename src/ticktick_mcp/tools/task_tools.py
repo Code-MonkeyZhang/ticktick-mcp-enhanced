@@ -370,3 +370,67 @@ def register_task_tools(mcp: FastMCP):
         except Exception as e:
             # logger.error(f"Error in create_subtasks: {e}")
             return f"Error during subtask creation: {str(e)}"
+
+    @mcp.tool(description=load_prompt("move_tasks"))
+    @log_interaction
+    async def move_tasks(
+        moves: Union[Dict[str, Any], List[Dict[str, Any]]]
+    ) -> str:
+        move_list, single_move, error = normalize_batch_input(moves, "Move")
+        if error:
+            return error
+
+        validation_errors = []
+        for i, move_data in enumerate(move_list):
+            validation_errors.extend(
+                validate_required_fields(
+                    move_data,
+                    ["task_id", "from_project_id", "to_project_id"],
+                    i,
+                    "Move",
+                )
+            )
+
+        if validation_errors:
+            return "Validation errors found:\n" + "\n".join(validation_errors)
+
+        moved_tasks = []
+        failed_tasks = []
+
+        try:
+            ticktick = ensure_client()
+            for i, move_data in enumerate(move_list):
+                try:
+                    task_id = move_data["task_id"]
+                    result = ticktick.move_task(
+                        task_id=task_id,
+                        from_project_id=move_data["from_project_id"],
+                        to_project_id=move_data["to_project_id"],
+                    )
+
+                    if "error" in result:
+                        failed_tasks.append(
+                            f"Move {i + 1} (Task ID: {task_id}): {result['error']}"
+                        )
+                    else:
+                        moved_tasks.append(
+                            (i + 1, task_id, move_data["to_project_id"])
+                        )
+                except Exception as e:
+                    failed_tasks.append(
+                        f"Move {i + 1} (Task ID: {move_data.get('task_id', 'Unknown')}): {str(e)}"
+                    )
+
+            return format_batch_result(
+                moved_tasks,
+                failed_tasks,
+                "moved",
+                "task",
+                single_move,
+                single_success_formatter=lambda item: f"Task {item[1]} moved successfully. New project ID: {item[2]}",
+                batch_item_formatter=lambda item: f"{item[0]}. Task ID: {item[1]} -> Project ID: {item[2]}",
+            )
+
+        except Exception as e:
+            logger.error(f"Error in move_tasks: {e}")
+            return f"Error during task move: {str(e)}"

@@ -106,3 +106,84 @@ def format_projects(projects: List[Dict], title: str = "Projects") -> str:
         result += f"Project {i}:\n" + format_project(project) + "\n"
     
     return result
+
+
+def format_habit(habit: Dict) -> str:
+    """Format a habit into a human-readable string.
+
+    Only LLM-relevant fields are shown; etag, sortOrder, timestamps and other
+    noise are intentionally omitted to keep the tool result compact.
+    """
+    formatted = f"ID: {habit.get('id', 'No ID')}\n"
+    formatted += f"Name: {habit.get('name', 'No name')}\n"
+
+    if habit.get('color'):
+        formatted += f"Color: {habit.get('color')}\n"
+    if habit.get('type'):
+        formatted += f"Type: {habit.get('type')}\n"
+    if habit.get('goal') is not None:
+        formatted += f"Goal: {habit.get('goal')}\n"
+    if habit.get('step') is not None:
+        formatted += f"Step: {habit.get('step')}\n"
+    if habit.get('unit'):
+        formatted += f"Unit: {habit.get('unit')}\n"
+    if habit.get('repeatRule'):
+        formatted += f"Repeat Rule: {habit.get('repeatRule')}\n"
+
+    status_map = {0: "Active", 1: "Archived"}
+    status = habit.get('status')
+    formatted += f"Status: {status_map.get(status, str(status))}\n"
+
+    if habit.get('encouragement'):
+        formatted += f"Encouragement: {habit.get('encouragement')}\n"
+    if habit.get('totalCheckIns') is not None:
+        formatted += f"Total Check-ins: {habit.get('totalCheckIns')}\n"
+
+    reminders = habit.get('reminders') or []
+    if reminders:
+        formatted += f"Reminders: {', '.join(reminders)}\n"
+
+    return formatted
+
+
+def format_habits(habits: List[Dict], title: str = "Habits") -> str:
+    """Format a list of habits into a human-readable string."""
+    if not habits:
+        return f"No {title.lower()} found."
+
+    result = f"Found {len(habits)} {title.lower()}:\n\n"
+    for i, habit in enumerate(habits, 1):
+        result += f"Habit {i}:\n" + format_habit(habit) + "\n"
+
+    return result
+
+
+def format_habit_checkin(checkin: Dict) -> str:
+    """Format a habit check-in result into a human-readable string."""
+    formatted = f"Habit ID: {checkin.get('habitId', 'No ID')}\n"
+    if checkin.get('year') is not None:
+        formatted += f"Year: {checkin.get('year')}\n"
+
+    entries = checkin.get('checkins', [])
+    if entries:
+        formatted += f"Check-ins ({len(entries)}):\n"
+        for i, entry in enumerate(entries, 1):
+            value = entry.get('value', 0)
+            goal = entry.get('goal', 0)
+            formatted += f"{i}. Stamp: {entry.get('stamp')} | Value: {value}/{goal}\n"
+    else:
+        formatted += "Check-ins: None\n"
+
+    return formatted
+
+
+def format_habit_checkins(checkins: List[Dict]) -> str:
+    """Format a list of habit check-in results into a human-readable string."""
+    if not checkins:
+        return "No check-ins found."
+
+    result = f"Found {len(checkins)} habit check-in record(s):\n\n"
+    for i, checkin in enumerate(checkins, 1):
+        result += f"Record {i}:\n" + format_habit_checkin(checkin) + "\n"
+
+    return result

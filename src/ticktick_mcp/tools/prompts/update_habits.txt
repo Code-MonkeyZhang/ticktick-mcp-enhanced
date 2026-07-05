@@ -1,0 +1,27 @@
+Update one or more existing habits in place.
+
+Only the fields you provide are changed; omitted fields keep their current value.
+
+Args:
+    habits: Habit update dictionary, or list of dictionaries. Each item must contain:
+        - habit_id (required): ID of the habit to update
+        - name (optional): New habit name
+        - color (optional): New color (hex code)
+        - type (optional): New habit type
+        - goal (optional): New numeric goal
+        - step (optional): New step value
+        - unit (optional): New unit
+        - repeat_rule (optional): New recurrence rule
+        - reminders (optional): New reminder triggers
+        - encouragement (optional): New encouragement message
+        - status (optional): New status
+
+Examples:
+    # Rename a single habit
+    {"habit_id": "habit-1", "name": "Read more"}
+
+    # Update goal and repeat rule for two habits
+    [
+        {"habit_id": "habit-1", "goal": 2.0},
+        {"habit_id": "habit-2", "repeat_rule": "RRULE:FREQ=DAILY;INTERVAL=2"}
+    ]

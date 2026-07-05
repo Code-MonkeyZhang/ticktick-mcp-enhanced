@@ -6,12 +6,17 @@ including creating, reading, updating, and deleting projects.
 """
 
 import logging
-from typing import Union, List
+from typing import Any, Dict, List, Union
 from mcp.server.fastmcp import FastMCP
 
 from ..client_manager import ensure_client
 from ..utils.formatters import format_project, format_task
 from ..utils.logging_utils import log_interaction
+from ..utils.validators import (
+    format_batch_result,
+    normalize_batch_input,
+    validate_required_fields,
+)
 from .prompts import load_prompt
 
 logger = logging.getLogger(__name__)
@@ -96,6 +101,72 @@ def register_project_tools(mcp: FastMCP):
         except Exception as e:
             # logger.error(f"Error in create_project: {e}")
             return f"Error creating project: {str(e)}"
+
+    @mcp.tool(description=load_prompt("update_projects"))
+    @log_interaction
+    async def update_projects(
+        projects: Union[Dict[str, Any], List[Dict[str, Any]]]
+    ) -> str:
+        project_list, single_project, error = normalize_batch_input(
+            projects, "Project"
+        )
+        if error:
+            return error
+
+        validation_errors = []
+        for i, project_data in enumerate(project_list):
+            validation_errors.extend(
+                validate_required_fields(project_data, ["project_id"], i, "Project")
+            )
+            view_mode = project_data.get("view_mode")
+            if view_mode and view_mode not in ["list", "kanban", "timeline"]:
+                validation_errors.append(
+                    f"Project {i + 1}: Invalid view_mode. Must be one of: list, kanban, timeline"
+                )
+
+        if validation_errors:
+            return "Validation errors found:\n" + "\n".join(validation_errors)
+
+        updated_projects = []
+        failed_projects = []
+
+        try:
+            ticktick = ensure_client()
+            for i, project_data in enumerate(project_list):
+                try:
+                    project_id = project_data["project_id"]
+                    result = ticktick.update_project(
+                        project_id=project_id,
+                        name=project_data.get("name"),
+                        color=project_data.get("color"),
+                        view_mode=project_data.get("view_mode"),
+                        kind=project_data.get("kind"),
+                    )
+
+                    if "error" in result:
+                        failed_projects.append(
+                            f"Project {i + 1} (ID: {project_id}): {result['error']}"
+                        )
+                    else:
+                        updated_projects.append((i + 1, project_id, result))
+                except Exception as e:
+                    failed_projects.append(
+                        f"Project {i + 1} (ID: {project_data.get('project_id', 'Unknown')}): {str(e)}"
+                    )
+
+            return format_batch_result(
+                updated_projects,
+                failed_projects,
+                "updated",
+                "project",
+                single_project,
+                single_success_formatter=lambda item: f"Project updated successfully:\n\n{format_project(item[2])}",
+                batch_item_formatter=lambda item: f"{item[0]}. {item[2].get('name', 'Unknown')} (ID: {item[1]})",
+            )
+
+        except Exception as e:
+            logger.error(f"Error in update_projects: {e}")
+            return f"Error during project update: {str(e)}"
 
     @mcp.tool(description=load_prompt("delete_projects"))
     @log_interaction

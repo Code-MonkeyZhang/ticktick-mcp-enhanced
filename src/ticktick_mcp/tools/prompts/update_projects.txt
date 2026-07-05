@@ -1,0 +1,22 @@
+Update one or more existing projects in place (without deleting them).
+
+Only the fields you provide are changed; omitted fields keep their current value.
+Use this instead of delete-then-recreate to avoid losing the tasks inside a project.
+
+Args:
+    projects: Project update dictionary, or list of dictionaries. Each item must contain:
+        - project_id (required): ID of the project to update
+        - name (optional): New project name
+        - color (optional): New color (hex code, e.g. "#F18181")
+        - view_mode (optional): One of "list", "kanban", "timeline"
+        - kind (optional): Project type - "TASK" or "NOTE"
+
+Examples:
+    # Rename a single project
+    {"project_id": "abc123", "name": "Archived Work"}
+
+    # Switch several projects to kanban view
+    [
+        {"project_id": "abc123", "view_mode": "kanban"},
+        {"project_id": "def456", "view_mode": "kanban"}
+    ]

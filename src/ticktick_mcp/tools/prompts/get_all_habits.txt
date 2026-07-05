@@ -1,0 +1,7 @@
+List all of the user's habits.
+
+No parameters. Returns complete habit objects (including each habit's ID) so you
+can act on them directly, for example to create a check-in afterwards.
+
+Example:
+    get_all_habits()

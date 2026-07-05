@@ -1,6 +1,10 @@
+import logging
+
 import requests
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 from .auth import TickTickAuth
+
+logger = logging.getLogger(__name__)
 
 
 class TickTickClient:
@@ -29,9 +33,21 @@ class TickTickClient:
     def base_url(self):
         return self.auth.get_base_url()
 
-    def _make_request(self, method: str, endpoint: str, data=None) -> Dict:
+    def _make_request(
+        self,
+        method: str,
+        endpoint: str,
+        data=None,
+        params: Optional[Dict] = None,
+    ) -> Dict:
         """
         Makes a request to the TickTick API.
+
+        Args:
+            method: HTTP method (GET, POST, DELETE, ...).
+            endpoint: API path starting with "/".
+            data: JSON body payload. May be a list for endpoints that accept arrays.
+            params: URL query string parameters (used by GET endpoints such as habit checkins).
         """
         if not self.auth.is_configured():
             return {"error": "Not configured. Please use the 'login' tool."}
@@ -42,7 +58,9 @@ class TickTickClient:
         url = f"{self.base_url}{endpoint}"
 
         try:
-            response = requests.request(method, url, headers=self.headers, json=data)
+            response = requests.request(
+                method, url, headers=self.headers, json=data, params=params
+            )
 
             if response.status_code == 401:
                 return {
@@ -189,6 +207,49 @@ class TickTickClient:
     def delete_task(self, project_id: str, task_id: str) -> Dict:
         return self._make_request("DELETE", f"/project/{project_id}/task/{task_id}")
 
+    def move_task(
+        self,
+        task_id: str,
+        from_project_id: str,
+        to_project_id: str,
+    ) -> Union[Dict, List]:
+        """Move a task from one project to another.
+
+        The API accepts an array of move operations; this wrapper handles one task per call.
+        """
+        moves = [
+            {
+                "fromProjectId": from_project_id,
+                "toProjectId": to_project_id,
+                "taskId": task_id,
+            }
+        ]
+        logger.info(
+            f"Moving task {task_id} from {from_project_id} to {to_project_id}"
+        )
+        return self._make_request("POST", "/task/move", data=moves)
+
+    def get_completed_tasks(
+        self,
+        project_ids: List[str] = None,
+        start_date: str = None,
+        end_date: str = None,
+    ) -> List[Dict]:
+        """List tasks completed within the given projects and time range.
+
+        All filters are optional; at least one is recommended to narrow results.
+        Dates must already be in TickTick API format (timezone offset without colon).
+        """
+        data = {}
+        if project_ids:
+            data["projectIds"] = project_ids
+        if start_date:
+            data["startDate"] = start_date
+        if end_date:
+            data["endDate"] = end_date
+        logger.info(f"Querying completed tasks with filters: {data}")
+        return self._make_request("POST", "/task/completed", data=data)
+
     def create_subtask(
         self,
         subtask_title: str,
@@ -209,3 +270,56 @@ class TickTickClient:
         if priority is not None:
             data["priority"] = normalize_priority(priority) if priority else 0
         return self._make_request("POST", "/task", data)
+
+    # ------------------------------------------------------------------
+    # Habit API
+    # ------------------------------------------------------------------
+
+    def get_all_habits(self) -> List[Dict]:
+        return self._make_request("GET", "/habit")
+
+    def get_habit(self, habit_id: str) -> Dict:
+        return self._make_request("GET", f"/habit/{habit_id}")
+
+    def create_habit(self, data: Dict) -> Dict:
+        logger.info(f"Creating habit: {data.get('name')}")
+        return self._make_request("POST", "/habit", data=data)
+
+    def update_habit(self, habit_id: str, data: Dict) -> Dict:
+        logger.info(f"Updating habit {habit_id}: {list(data.keys())}")
+        return self._make_request("POST", f"/habit/{habit_id}", data=data)
+
+    def checkin_habit(
+        self,
+        habit_id: str,
+        stamp: int,
+        value: float = 1.0,
+        goal: float = 1.0,
+        status: Optional[int] = None,
+    ) -> Dict:
+        """Create or update a habit check-in for a given date stamp."""
+        data = {"stamp": stamp, "value": value, "goal": goal}
+        if status is not None:
+            data["status"] = status
+        logger.info(f"Check-in habit {habit_id} for stamp {stamp}")
+        return self._make_request("POST", f"/habit/{habit_id}/checkin", data=data)
+
+    def get_habit_checkins(
+        self,
+        habit_ids: List[str],
+        from_stamp: int,
+        to_stamp: int,
+    ) -> List[Dict]:
+        """Fetch habit check-in records within a date-stamp range.
+
+        habit_ids, from and to are sent as URL query parameters per the API spec.
+        """
+        params = {
+            "habitIds": ",".join(habit_ids),
+            "from": from_stamp,
+            "to": to_stamp,
+        }
+        logger.info(f"Querying habit check-ins: {params}")
+        return self._make_request(
+            "GET", "/habit/checkins", params=params
+        )

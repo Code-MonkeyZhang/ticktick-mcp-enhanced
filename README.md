@@ -16,6 +16,7 @@
 
 ## 📢 Update
 
+- **2026-07-04** 新增任务移动、已完成任务查询、项目更新、习惯管理模块 — 共 9 个新工具（move_tasks、get_completed_tasks、update_projects，以及习惯模块的 get_all_habits、get_habit、create_habits、update_habits、checkin_habits、get_habit_checkins）。
 - **2026-07-02** 重构认证系统 — 移除环境变量配置，改为运行时 `login` 工具直接传入 OAuth 凭据，支持中国版/国际版一键切换。
 - **2026-05-12** 提取工具描述 — 将所有工具的 Prompt 提取为独立 `.txt` 文件，便于维护和修改。
 - **2026-05-09** 新增提醒参数 — 创建和更新任务时支持 `reminders`，可设置到期前推送提醒。
@@ -99,20 +100,29 @@ uv pip install -e .
 
 此 MCP 向你的 LLM 客户端公开以下工具。
 
-| 类别     | 工具名称           | 功能描述                                       |
-| :------- | :----------------- | :--------------------------------------------- |
-| **认证** | `ticktick_status`  | 检查当前的连接和授权状态。                     |
-|          | `login`            | 传入 OAuth 凭据，启动浏览器授权流程并完成登录。 |
-| **清单** | `get_all_projects` | 获取所有清单列表。                             |
-|          | `get_project_info` | 查看特定清单及其中的任务。                     |
-|          | `create_project`   | 创建一个新的项目。                             |
-|          | `delete_projects`  | 删除项目。                                     |
-| **任务** | `create_tasks`     | 创建任务（支持智能时间识别）。                 |
-|          | `update_tasks`     | 修改任务标题、内容、日期或优先级。             |
-|          | `complete_tasks`   | 将任务标记为完成。                             |
-|          | `delete_tasks`     | 批量删除任务。                                 |
-|          | `create_subtasks`  | 为任务添加子任务。                             |
-| **查询** | `query_tasks`      | 高级清单查询（支持日期范围、优先级、搜索词）。 |
+| 类别     | 工具名称                | 功能描述                                       |
+| :------- | :---------------------- | :--------------------------------------------- |
+| **认证** | `ticktick_status`       | 检查当前的连接和授权状态。                     |
+|          | `login`                 | 传入 OAuth 凭据，启动浏览器授权流程并完成登录。 |
+| **清单** | `get_all_projects`      | 获取所有清单列表。                             |
+|          | `get_project_info`      | 查看特定清单及其中的任务。                     |
+|          | `create_project`        | 创建一个新的项目。                             |
+|          | `update_projects`       | 原地修改项目名称、颜色、视图或类型（支持批量）。 |
+|          | `delete_projects`       | 删除项目。                                     |
+| **任务** | `create_tasks`          | 创建任务（支持智能时间识别）。                 |
+|          | `update_tasks`          | 修改任务标题、内容、日期或优先级。             |
+|          | `complete_tasks`        | 将任务标记为完成。                             |
+|          | `delete_tasks`          | 批量删除任务。                                 |
+|          | `create_subtasks`       | 为任务添加子任务。                             |
+|          | `move_tasks`            | 在不同项目之间移动任务（支持批量）。           |
+| **查询** | `query_tasks`           | 高级清单查询（支持日期范围、优先级、搜索词）。 |
+|          | `get_completed_tasks`   | 按项目和时间范围查询已完成的任务。             |
+| **习惯** | `get_all_habits`        | 获取所有习惯列表。                             |
+|          | `get_habit`             | 按 ID 查看单个习惯。                           |
+|          | `create_habits`         | 创建习惯（支持批量）。                         |
+|          | `update_habits`         | 原地修改习惯属性（支持批量）。                 |
+|          | `checkin_habits`        | 给习惯打卡，默认今天（支持批量与补打）。       |
+|          | `get_habit_checkins`    | 按日期范围查询习惯的打卡记录。                 |
 
 ## 📂 项目结构
 
@@ -127,6 +137,10 @@ ticktick-mcp-enhanced/
 │       ├── log.py               # 日志配置
 │       ├── ticktick_client.py   # TickTick API 客户端
 │       ├── tools/               # 各类工具实现
+│       │   ├── project_tools.py # 清单工具
+│       │   ├── task_tools.py    # 任务工具
+│       │   ├── query_tools.py   # 查询工具
+│       │   ├── habit_tools.py   # 习惯工具
 │       │   └── prompts/         # 工具描述 (.txt)
 │       └── utils/               # 格式化与校验工具
 ├── pyproject.toml              # 项目配置与依赖

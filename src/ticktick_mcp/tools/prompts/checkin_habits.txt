@@ -1,0 +1,35 @@
+Create or update a habit check-in (mark a habit as done for a given day).
+
+Supports both single check-in and batch. For a single check-in, pass a dictionary
+directly. For multiple, pass a list of dictionaries.
+
+Important notes on the fields:
+- date defaults to today when omitted. Internally converted to the API's YYYYMMDD stamp.
+- value defaults to 1.0. For boolean habits (e.g. "did I run today") keep 1.0;
+  for numeric habits (e.g. "read 30 minutes") set the actual number achieved.
+- goal defaults to 1.0. Compare value vs goal to know whether the habit was met.
+- To backfill a missed day, pass the past date explicitly.
+
+Args:
+    checkins: Check-in dictionary or list of dictionaries. Each item must contain:
+        - habit_id (required): ID of the habit to check in
+        - date (optional): Day to check in, YYYY-MM-DD format. Defaults to today.
+        - value (optional): Check-in value, default 1.0
+        - goal (optional): Check-in goal, default 1.0
+        - status (optional): Check-in status
+
+Examples:
+    # Check in today for a boolean habit
+    {"habit_id": "habit-1"}
+
+    # Numeric habit: read 45 minutes against a 30 minute goal
+    {"habit_id": "habit-1", "value": 45, "goal": 30}
+
+    # Backfill yesterday
+    {"habit_id": "habit-1", "date": "2026-07-03"}
+
+    # Batch
+    [
+        {"habit_id": "habit-1"},
+        {"habit_id": "habit-2", "value": 45, "goal": 30}
+    ]

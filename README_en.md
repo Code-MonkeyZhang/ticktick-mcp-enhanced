@@ -82,17 +82,26 @@ This MCP exposes the following tools to your LLM client.
 | Category     | Tool                   | Description                                        |
 | :----------- | :--------------------- | :------------------------------------------------- |
 | **Auth**     | `ticktick_status`      | Check current connection and auth status.          |
-|              | `start_authentication` | Generate login link and start local listener.      |
-| **Projects** | `get_all_projects`     | List all projects with their IDs.                  |
-|              | `get_project_info`     | Get tasks and details for a specific project.      |
-|              | `create_project`       | Create a new project list.                         |
-|              | `delete_projects`      | Batch delete projects.                             |
-| **Tasks**    | `create_tasks`         | Create tasks with smart time/text parsing.         |
+|              | `login`                | Pass OAuth credentials and run the browser auth flow to log in. |
+| **Projects** | `get_all_projects`     | List all projects.                                 |
+|              | `get_project_info`     | View a specific project and the tasks in it.       |
+|              | `create_project`       | Create a new project.                              |
+|              | `update_projects`      | Update a project's name, color, view mode or kind in place (batch supported). |
+|              | `delete_projects`      | Delete projects.                                   |
+| **Tasks**    | `create_tasks`         | Create tasks with smart time parsing.              |
 |              | `update_tasks`         | Update title, content, date, or priority.          |
 |              | `complete_tasks`       | Mark tasks as completed.                           |
 |              | `delete_tasks`         | Batch delete tasks.                                |
 |              | `create_subtasks`      | Add subtasks to an existing task.                  |
+|              | `move_tasks`           | Move tasks between projects (batch supported).     |
 | **Query**    | `query_tasks`          | Advanced filtering (date range, priority, search). |
+|              | `get_completed_tasks`  | Query completed tasks by project and time range.   |
+| **Habits**   | `get_all_habits`       | List all habits.                                   |
+|              | `get_habit`            | Get a single habit by ID.                          |
+|              | `create_habits`        | Create habits (batch supported).                   |
+|              | `update_habits`        | Update habit attributes in place (batch supported). |
+|              | `checkin_habits`       | Check in a habit, defaulting to today (batch and backfill supported). |
+|              | `get_habit_checkins`   | Query habit check-in records by date range.        |
 
 ## 📂 Project Structure
 

@@ -32,6 +32,38 @@ PRIORITY_NAME_MAP = {
     5: "high"
 }
 
+# Maps tool-facing snake_case habit fields to the TickTick API camelCase keys.
+# Only these fields are accepted on create/update; everything else the API
+# exposes (etag, sortOrder, timestamps, iconRes, ...) is intentionally ignored.
+HABIT_FIELD_MAP = {
+    "name": "name",
+    "color": "color",
+    "type": "type",
+    "goal": "goal",
+    "step": "step",
+    "unit": "unit",
+    "repeat_rule": "repeatRule",
+    "reminders": "reminders",
+    "encouragement": "encouragement",
+    "status": "status",
+}
+
+
+def build_habit_payload(habit_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Build a TickTick habit payload from tool input, keeping only known fields."""
+    payload = {}
+    for src, dst in HABIT_FIELD_MAP.items():
+        if src in habit_data and habit_data[src] is not None:
+            payload[dst] = habit_data[src]
+    return payload
+
+
+def validate_habit_data(habit_data: Dict[str, Any], index: int) -> Optional[str]:
+    """Validate a habit for creation. Name is required."""
+    if "name" not in habit_data or not habit_data["name"]:
+        return f"Habit {index + 1}: 'name' is required and cannot be empty"
+    return None
+
 
 def normalize_priority(priority: Union[str, int, None]) -> Optional[int]:
     """

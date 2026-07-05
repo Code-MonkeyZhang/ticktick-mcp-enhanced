@@ -1,0 +1,13 @@
+Get habit check-in records within a date range.
+
+Returns complete check-in objects so you can analyze streaks, completion rates or
+find missed days without a second lookup.
+
+Args:
+    habit_ids: A single habit ID or a list of habit IDs
+    from_date: Start date, YYYYMMDD integer (e.g. 20260401)
+    to_date: End date, YYYYMMDD integer (e.g. 20260407)
+
+Example:
+    # One week of check-ins for two habits
+    {"habit_ids": ["habit-1", "habit-2"], "from_date": 20260401, "to_date": 20260407}

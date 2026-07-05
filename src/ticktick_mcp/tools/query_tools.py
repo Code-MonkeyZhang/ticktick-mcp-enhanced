@@ -5,11 +5,13 @@ This module contains MCP tools for querying and filtering tasks
 by various criteria such as due dates, priority, and search terms.
 """
 
-# import logging
-from typing import Dict, Any, Optional
+import logging
+from typing import Dict, Any, List, Optional
 from mcp.server.fastmcp import FastMCP
 
 from ..client_manager import ensure_client
+from ..utils.formatters import format_tasks
+from ..utils.timezone import to_ticktick_date_format
 from ..utils.validators import (
     get_project_tasks_by_filter,
     is_task_due_today,
@@ -21,7 +23,7 @@ from ..utils.validators import (
 from ..utils.logging_utils import log_interaction
 from .prompts import load_prompt
 
-# logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def register_query_tools(mcp: FastMCP):
@@ -233,3 +235,26 @@ def register_query_tools(mcp: FastMCP):
         except Exception as e:
             # logger.error(f"Error in query_tasks: {e}")
             return f"Error querying tasks: {str(e)}"
+
+    @mcp.tool(description=load_prompt("get_completed_tasks"))
+    @log_interaction
+    async def get_completed_tasks(
+        project_ids: Optional[List[str]] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+    ) -> str:
+        try:
+            ticktick = ensure_client()
+            tasks = ticktick.get_completed_tasks(
+                project_ids=project_ids,
+                start_date=to_ticktick_date_format(start_date),
+                end_date=to_ticktick_date_format(end_date),
+            )
+
+            if isinstance(tasks, dict) and "error" in tasks:
+                return f"Error fetching completed tasks: {tasks['error']}"
+
+            return format_tasks(tasks, title="Completed tasks")
+        except Exception as e:
+            logger.error(f"Error in get_completed_tasks: {e}")
+            return f"Error fetching completed tasks: {str(e)}"

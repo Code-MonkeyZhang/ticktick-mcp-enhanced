@@ -9,6 +9,7 @@ from .client_manager import initialize_client, get_client
 from .tools.project_tools import register_project_tools
 from .tools.task_tools import register_task_tools
 from .tools.query_tools import register_query_tools
+from .tools.habit_tools import register_habit_tools
 from .tools.prompts import load_prompt
 from .utils.logging_utils import log_interaction
 
@@ -78,6 +79,7 @@ def register_all_tools():
     register_project_tools(mcp)
     register_task_tools(mcp)
     register_query_tools(mcp)
+    register_habit_tools(mcp)
 
     logger.info("All TickTick MCP tools registered successfully")
 

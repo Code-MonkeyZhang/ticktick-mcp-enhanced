@@ -1,0 +1,7 @@
+Get a single habit by its ID.
+
+Args:
+    habit_id: ID of the habit
+
+Example:
+    get_habit("habit-1")

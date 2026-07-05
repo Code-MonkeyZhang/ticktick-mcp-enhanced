@@ -1,0 +1,17 @@
+Move one or more tasks from their current project to a different project.
+
+Args:
+    moves: Move dictionary, or list of dictionaries. Each item must contain:
+        - from_project_id (required): ID of the source project
+        - to_project_id (required): ID of the destination project
+        - task_id (required): ID of the task to move
+
+Examples:
+    # Move a single task
+    {"from_project_id": "abc123", "to_project_id": "def456", "task_id": "task789"}
+
+    # Move multiple tasks
+    [
+        {"from_project_id": "abc123", "to_project_id": "def456", "task_id": "task1"},
+        {"from_project_id": "abc123", "to_project_id": "def456", "task_id": "task2"}
+    ]

@@ -1,0 +1,18 @@
+List tasks that have been completed within a given set of projects and time range.
+
+All parameters are optional, but at least one is recommended to narrow the results.
+Returns complete task objects (id, projectId, completedTime, ...) so you can act on
+them directly without a second lookup.
+
+Args:
+    project_ids: List of project IDs to search across (use "inbox" for the inbox).
+    start_date: ISO datetime WITH timezone offset, inclusive lower bound on completedTime
+        (e.g., "2026-03-01T00:00:00+0800").
+    end_date: ISO datetime WITH timezone offset, inclusive upper bound on completedTime.
+
+Examples:
+    # Tasks completed in one project during March 2026
+    {"project_ids": ["abc123"], "start_date": "2026-03-01T00:00:00+0800", "end_date": "2026-03-31T23:59:59+0800"}
+
+    # All completed tasks across every project (no filters)
+    {}
